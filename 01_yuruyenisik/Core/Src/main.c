@@ -44,9 +44,12 @@
 /* USER CODE BEGIN PV */
 
   uint16_t leds[4] = {GPIO_PIN_12, GPIO_PIN_13, GPIO_PIN_14, GPIO_PIN_15};
+  uint16_t hizlar[4] = {800, 400, 200, 80};
+
+  // değişkenin register yerine bellekte tutulması için volatile olarak tanımlanmıştır
+  volatile uint8_t hiz_index = 1;
   int8_t index = 0;
   int8_t dir = 1;
-  GPIO_PinState button = GPIO_PIN_RESET;
 
 
 /* USER CODE END PV */
@@ -101,7 +104,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  button = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
 	  for(int i = 0; i < 4; i++){
 		  HAL_GPIO_WritePin(GPIOD, leds[i], GPIO_PIN_RESET);
 	  }
@@ -110,10 +112,7 @@ int main(void)
 	  index += dir;
 	  if(index == 3 || index == 0)
 		  dir = -dir;
-	  if(button == GPIO_PIN_SET)
-		  HAL_Delay(200);
-	  else
-		  HAL_Delay(500);
+	  HAL_Delay(hizlar[hiz_index]);
 
     /* USER CODE END WHILE */
 
@@ -188,7 +187,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : PA0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
@@ -199,11 +198,25 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == GPIO_PIN_0)
+    {
+        hiz_index++;
+        if (hiz_index >= 4)
+            hiz_index = 0;
+    }
+}
 
 /* USER CODE END 4 */
 

@@ -1,0 +1,9 @@
+.metadata/
+Debug/
+Release/
+.settings/
+.mxproject
+*.o
+*.d
+*.elf
+*.map

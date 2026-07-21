@@ -45,11 +45,13 @@
 
   uint16_t leds[4] = {GPIO_PIN_12, GPIO_PIN_13, GPIO_PIN_14, GPIO_PIN_15};
   uint16_t hizlar[4] = {800, 400, 200, 80};
+  int8_t index = 0;
+  int8_t dir = 1;
+
 
   // değişkenin register yerine bellekte tutulması için volatile olarak tanımlanmıştır
   volatile uint8_t hiz_index = 1;
-  int8_t index = 0;
-  int8_t dir = 1;
+  volatile uint32_t son_kesme = 0;
 
 
 /* USER CODE END PV */
@@ -212,9 +214,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if (GPIO_Pin == GPIO_PIN_0)
     {
-        hiz_index++;
-        if (hiz_index >= 4)
-            hiz_index = 0;
+    	uint32_t simdi = HAL_GetTick();
+
+    	if(simdi - son_kesme > 200)
+    	{
+    		hiz_index++;
+    		if(hiz_index >= 4)
+    			hiz_index = 0;
+    		son_kesme = simdi;
+    	}
     }
 }
 

@@ -44,11 +44,6 @@ SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN PV */
 
-uint8_t whoAmI = 0;
-uint8_t ctrlreg4;
-
-int16_t X_axis, Y_axis, Z_axis;
-uint8_t X_low, X_high, Y_low, Y_high, Z_low, Z_high;
 
 /* USER CODE END PV */
 
@@ -63,33 +58,7 @@ static void MX_SPI1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void SPI_Write_MEMS(uint8_t address, uint8_t data){
 
-	uint8_t txData[2] = {0};
-
-	txData[0] = address;
-	txData[1] = data;
-
-	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);
-	HAL_SPI_Transmit(&hspi1, txData, 2, 1000);
-	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);
-
-}
-
-
-uint8_t SPI_Read_MEMS(uint8_t address){
-
-	uint8_t txData[1] = {0}, rxData[1] = {0};
-
-	txData[0] = address | 0x80;
-
-	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);
-	HAL_SPI_Transmit(&hspi1, txData, 1, 1000);
-	HAL_SPI_Receive(&hspi1, rxData, 1, 1000);
-	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);
-
-	return rxData[0];
-}
 
 /* USER CODE END 0 */
 
@@ -125,10 +94,7 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
-  SPI_Write_MEMS(0x20, 0x57);
-  ctrlreg4 = SPI_Read_MEMS(0x20);
 
-  whoAmI = SPI_Read_MEMS(0x0F);
 
   /* USER CODE END 2 */
 
@@ -140,22 +106,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  X_low  = SPI_Read_MEMS(0x28);
-	  X_high = SPI_Read_MEMS(0x29);
 
-	  X_axis = (X_high << 8 ) | X_low;
-
-	  Y_low  = SPI_Read_MEMS(0x2A);
-	  Y_high = SPI_Read_MEMS(0x2B);
-
-	  Y_axis = (Y_high << 8 ) | Y_low;
-
-	  Z_low  = SPI_Read_MEMS(0x2C);
-	  Z_high = SPI_Read_MEMS(0x2D);
-
-	  Z_axis = (Z_high << 8 ) | Z_low;
-
-	  HAL_Delay(500);
   }
   /* USER CODE END 3 */
 }

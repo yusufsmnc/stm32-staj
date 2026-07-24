@@ -17,7 +17,6 @@
 
 #define LIS3DSH_READ_BIT    0x80
 #define LIS3DSH_WRITE_MASK  0x7F
-#define LIS3DSH_MS_BIT      0x40
 #define LIS3DSH_TIMEOUT     1000
 
 static void LIS3DSH_CS_Low(LIS3DSH_t *lis3dsh)
@@ -93,7 +92,7 @@ bool LIS3DSH_Initialization(LIS3DSH_t *lis3dsh, SPI_HandleTypeDef *hspi,
 
 bool LIS3DSH_Read_XYZ(LIS3DSH_t *lis3dsh)
 {
-    uint8_t txData = LIS3DSH_OUT_X_L | LIS3DSH_READ_BIT | LIS3DSH_MS_BIT;
+    uint8_t txData = LIS3DSH_OUT_X_L | LIS3DSH_READ_BIT;
     uint8_t rxData[6] = {0};
     HAL_StatusTypeDef status;
 

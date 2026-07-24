@@ -8,7 +8,10 @@
 #ifndef INC_LIS3DSH_H_
 #define INC_LIS3DSH_H_
 
+
 #include "main.h"
+#include <stdbool.h>
+#include <stddef.h>
 
 /*
  *  Registers
@@ -51,6 +54,10 @@ typedef struct{
 	int16_t				x_raw;
 	int16_t				y_raw;
 	int16_t				z_raw;
+
+	float				roll;
+	float				pitch;
+
 }LIS3DSH_t;
 
 bool LIS3DSH_Initialization(LIS3DSH_t *lis3dsh, SPI_HandleTypeDef *hspi, GPIO_TypeDef *csPort, uint16_t csPin);

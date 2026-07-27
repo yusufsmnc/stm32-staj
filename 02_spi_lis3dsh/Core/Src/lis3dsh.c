@@ -85,6 +85,9 @@ bool LIS3DSH_Initialization(LIS3DSH_t *lis3dsh, SPI_HandleTypeDef *hspi,
     if (!LIS3DSH_Write_Register(lis3dsh, LIS3DSH_CTRL_REG4, 0x67))
         return false;
 
+    if (!LIS3DSH_Write_Register(lis3dsh, LIS3DSH_CTRL_REG3, 0xC8))
+        return false;
+
     HAL_Delay(10);
 
     return true;

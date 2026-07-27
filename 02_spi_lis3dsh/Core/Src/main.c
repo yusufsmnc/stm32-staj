@@ -50,6 +50,7 @@ SPI_HandleTypeDef hspi1;
 
 	LIS3DSH_t mems;
 	volatile bool memsHazir = false;
+	volatile bool veriHazir = false;
 
 /* USER CODE END PV */
 
@@ -111,18 +112,18 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if(memsHazir)
+	  if(memsHazir && veriHazir){
+		  veriHazir = false;
 		  LIS3DSH_Read_XYZ(&mems);
 
-	  mems.roll  = atan2f(mems.y_raw,sqrtf(mems.x_raw * mems.x_raw + mems.z_raw * mems.z_raw)) * RAD_TO_DEG;
-	  mems.pitch = atan2f(-mems.x_raw,sqrtf(mems.y_raw * mems.y_raw + mems.z_raw * mems.z_raw)) * RAD_TO_DEG;
+		  mems.roll  = atan2f(mems.y_raw,sqrtf(mems.x_raw * mems.x_raw + mems.z_raw * mems.z_raw)) * RAD_TO_DEG;
+		  mems.pitch = atan2f(-mems.x_raw,sqrtf(mems.y_raw * mems.y_raw + mems.z_raw * mems.z_raw)) * RAD_TO_DEG;
 
-	  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, (mems.pitch < - DEG_THRES) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-	  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, (mems.pitch > DEG_THRES)   ? GPIO_PIN_SET : GPIO_PIN_RESET);
-	  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, (mems.roll  < - DEG_THRES) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-	  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, (mems.roll  > DEG_THRES)   ? GPIO_PIN_SET : GPIO_PIN_RESET);
-
-	  HAL_Delay(100);
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, (mems.pitch < - DEG_THRES) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, (mems.pitch > DEG_THRES)   ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, (mems.roll  < - DEG_THRES) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, (mems.roll  > DEG_THRES)   ? GPIO_PIN_SET : GPIO_PIN_RESET);
+	  }
 
   }
   /* USER CODE END 3 */
@@ -248,11 +249,30 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PE0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+
+volatile uint32_t kesme_sayaci = 0;
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == GPIO_PIN_0){
+        veriHazir = true;
+        kesme_sayaci++;
+    }
+}
 
 /* USER CODE END 4 */
 

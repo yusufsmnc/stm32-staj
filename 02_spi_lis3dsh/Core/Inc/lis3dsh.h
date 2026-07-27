@@ -45,7 +45,7 @@
  */
 
 #define LIS3DSH_WHO_AM_I_VALUE	        0x3F
-
+#define FILTER_ALPHA            		0.2f
 typedef struct{
 	SPI_HandleTypeDef   *hspi;
 	GPIO_TypeDef		*cs_port;
@@ -63,6 +63,8 @@ typedef struct{
 
 	float				roll;
 	float				pitch;
+	float 				roll_filtered;
+	float 				pitch_filtered;
 
 }LIS3DSH_t;
 

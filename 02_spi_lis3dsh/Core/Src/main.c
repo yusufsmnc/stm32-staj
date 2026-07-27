@@ -121,10 +121,13 @@ int main(void)
 		  mems.roll  = atan2f(mems.y_cal,sqrtf(mems.x_cal * mems.x_cal + mems.z_cal * mems.z_cal)) * RAD_TO_DEG;
 		  mems.pitch = atan2f(-mems.x_cal,sqrtf(mems.y_cal * mems.y_cal + mems.z_cal * mems.z_cal)) * RAD_TO_DEG;
 
-		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, (mems.pitch < - DEG_THRES) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, (mems.pitch > DEG_THRES)   ? GPIO_PIN_SET : GPIO_PIN_RESET);
-		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, (mems.roll  < - DEG_THRES) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, (mems.roll  > DEG_THRES)   ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		  mems.roll_filtered  = FILTER_ALPHA * mems.roll  + (1.0f - FILTER_ALPHA) * mems.roll_filtered;
+		  mems.pitch_filtered = FILTER_ALPHA * mems.pitch + (1.0f - FILTER_ALPHA) * mems.pitch_filtered;
+
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, (mems.pitch_filtered < - DEG_THRES) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, (mems.pitch_filtered > DEG_THRES)   ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, (mems.roll_filtered  < - DEG_THRES) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, (mems.roll_filtered  > DEG_THRES)   ? GPIO_PIN_SET : GPIO_PIN_RESET);
 	  }
 
   }

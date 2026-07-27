@@ -102,6 +102,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   memsHazir = LIS3DSH_Initialization(&mems, &hspi1, CS_GPIO_Port, CS_Pin);
+  if (memsHazir)
+      LIS3DSH_Calibrate(&mems, 200);
 
   /* USER CODE END 2 */
 
@@ -116,8 +118,8 @@ int main(void)
 		  veriHazir = false;
 		  LIS3DSH_Read_XYZ(&mems);
 
-		  mems.roll  = atan2f(mems.y_raw,sqrtf(mems.x_raw * mems.x_raw + mems.z_raw * mems.z_raw)) * RAD_TO_DEG;
-		  mems.pitch = atan2f(-mems.x_raw,sqrtf(mems.y_raw * mems.y_raw + mems.z_raw * mems.z_raw)) * RAD_TO_DEG;
+		  mems.roll  = atan2f(mems.y_cal,sqrtf(mems.x_cal * mems.x_cal + mems.z_cal * mems.z_cal)) * RAD_TO_DEG;
+		  mems.pitch = atan2f(-mems.x_cal,sqrtf(mems.y_cal * mems.y_cal + mems.z_cal * mems.z_cal)) * RAD_TO_DEG;
 
 		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, (mems.pitch < - DEG_THRES) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, (mems.pitch > DEG_THRES)   ? GPIO_PIN_SET : GPIO_PIN_RESET);

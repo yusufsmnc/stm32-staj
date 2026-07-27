@@ -54,6 +54,12 @@ typedef struct{
 	int16_t				x_raw;
 	int16_t				y_raw;
 	int16_t				z_raw;
+	int16_t				x_offset;
+	int16_t				y_offset;
+	int16_t				z_offset;
+	int16_t				x_cal;
+	int16_t				y_cal;
+	int16_t				z_cal;
 
 	float				roll;
 	float				pitch;
@@ -67,7 +73,7 @@ bool LIS3DSH_Read_XYZ(LIS3DSH_t *lis3dsh);
 
 uint8_t LIS3DSH_Read_Register(LIS3DSH_t *lis3dsh, uint8_t regAddr);
 bool LIS3DSH_Write_Register(LIS3DSH_t *lis3dsh, uint8_t regAddr, uint8_t data);
-
+void LIS3DSH_Calibrate(LIS3DSH_t *lis3dsh, uint16_t samples);
 
 
 #endif /* INC_LIS3DSH_H_ */

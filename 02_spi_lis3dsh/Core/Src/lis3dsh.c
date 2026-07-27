@@ -111,6 +111,28 @@ bool LIS3DSH_Read_XYZ(LIS3DSH_t *lis3dsh)
     lis3dsh->y_raw = (int16_t)((rxData[3] << 8) | rxData[2]);
     lis3dsh->z_raw = (int16_t)((rxData[5] << 8) | rxData[4]);
 
+    lis3dsh->x_cal = lis3dsh->x_raw - lis3dsh->x_offset;
+    lis3dsh->y_cal = lis3dsh->y_raw - lis3dsh->y_offset;
+    lis3dsh->z_cal = lis3dsh->z_raw - lis3dsh->z_offset;
+
     return true;
+}
+
+void LIS3DSH_Calibrate(LIS3DSH_t *lis3dsh, uint16_t samples)
+{
+    int32_t x_sum = 0, y_sum = 0, z_sum = 0;
+
+    for (uint16_t i = 0; i < samples; i++)
+    {
+        LIS3DSH_Read_XYZ(lis3dsh);
+        x_sum += lis3dsh->x_raw;
+        y_sum += lis3dsh->y_raw;
+        z_sum += lis3dsh->z_raw;
+        HAL_Delay(5);
+    }
+
+    lis3dsh->x_offset = x_sum / samples;
+    lis3dsh->y_offset = y_sum / samples;
+    lis3dsh->z_offset = (z_sum / samples) - 16384;
 }
 

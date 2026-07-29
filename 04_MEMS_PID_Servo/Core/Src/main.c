@@ -122,8 +122,9 @@ int main(void)
       LIS3DSH_Calibrate(&mems, 200);
   }
 
-  PID_Init(&rollPid, 1.7f, 0.1f, 0.005f, -90.0f, 90.0f);
+  PID_Init(&rollPid, 1.7f, 0.1f, 0.005f, -90.0f, 90.0f, -300.0f, 300.0f);
   SetServoAngle(90.0f);
+  PID_Reset(&rollPid);
 
   /* USER CODE END 2 */
 
@@ -146,7 +147,7 @@ int main(void)
 	         mems.roll_filtered  = FILTER_ALPHA * mems.roll  + (1.0f - FILTER_ALPHA) * mems.roll_filtered;
 	         mems.pitch_filtered = FILTER_ALPHA * mems.pitch + (1.0f - FILTER_ALPHA) * mems.pitch_filtered;
 
-	         float servoKomut = PID_Compute(&rollPid, 90.0f, mems.roll_filtered + 90.0f, 0.01f);
+	         float servoKomut = PID_Compute(&rollPid, 90.0f, mems.roll_filtered + 90.0f);
 	         debugServoKomut = servoKomut;
 	         SetServoAngle(90.0f + servoKomut);
 

@@ -25,6 +25,8 @@
 #include "lis3dsh.h"
 #include "PID.h"
 #include "math.h"
+#include "string.h"
+#include "stdio.h"
 
 /* USER CODE END Includes */
 
@@ -53,6 +55,8 @@ SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim3;
 
+UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN PV */
 
 LIS3DSH_t mems;
@@ -69,9 +73,12 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 void SetServoAngle(float angle);
+void UART_SendString(char *str);
+void floatYazdir(char *hedef, float deger);
 
 /* USER CODE END PFP */
 
@@ -111,6 +118,7 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI1_Init();
   MX_TIM3_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
@@ -156,6 +164,19 @@ int main(void)
 	         HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, (mems.pitch_filtered >  15.0f) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 	         HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, (mems.roll_filtered  < -15.0f) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 	         HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, (mems.roll_filtered  >  15.0f) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+	         static uint8_t uartSayac = 0;
+	         uartSayac++;
+	         if (uartSayac >= 5)
+	             {
+	                 uartSayac = 0;
+	                 char rollStr[16], servoStr[16], buffer[64];
+	                 floatYazdir(rollStr, mems.roll_filtered);
+	                 floatYazdir(servoStr, servoKomut);
+	                 sprintf(buffer, "%s,%s,%d\r\n", rollStr, servoStr, debugPulse);
+	                 UART_SendString(buffer);
+	             }
+
 	     }
   }
   /* USER CODE END 3 */
@@ -305,6 +326,39 @@ static void MX_TIM3_Init(void)
 }
 
 /**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -373,6 +427,24 @@ void SetServoAngle(float angle)
     uint16_t pulse = SERVO_MIN_PULSE + (uint16_t)((angle / 180.0f) * (SERVO_MAX_PULSE - SERVO_MIN_PULSE));
     debugPulse = pulse;
     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pulse);
+}
+
+void UART_SendString(char *str)
+{
+    HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), 100);
+}
+
+void floatYazdir(char *hedef, float deger)
+{
+    if (deger < 0)
+    {
+        hedef[0] = '-';
+        deger = -deger;
+        hedef++;
+    }
+    int tam = (int)deger;
+    int ondalik = (int)((deger - tam) * 100);
+    sprintf(hedef, "%d.%02d", tam, ondalik);
 }
 
 /* USER CODE END 4 */

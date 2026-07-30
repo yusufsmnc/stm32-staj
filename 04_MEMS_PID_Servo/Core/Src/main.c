@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -57,6 +58,44 @@ TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart2;
 
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for sensorTask */
+osThreadId_t sensorTaskHandle;
+const osThreadAttr_t sensorTask_attributes = {
+  .name = "sensorTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
+/* Definitions for pidTask */
+osThreadId_t pidTaskHandle;
+const osThreadAttr_t pidTask_attributes = {
+  .name = "pidTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for uartTask */
+osThreadId_t uartTaskHandle;
+const osThreadAttr_t uartTask_attributes = {
+  .name = "uartTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for aciKuyrukPID */
+osMessageQueueId_t aciKuyrukPIDHandle;
+const osMessageQueueAttr_t aciKuyrukPID_attributes = {
+  .name = "aciKuyrukPID"
+};
+/* Definitions for aciKuyrukUART */
+osMessageQueueId_t aciKuyrukUARTHandle;
+const osMessageQueueAttr_t aciKuyrukUART_attributes = {
+  .name = "aciKuyrukUART"
+};
 /* USER CODE BEGIN PV */
 
 LIS3DSH_t mems;
@@ -74,6 +113,11 @@ static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_USART2_UART_Init(void);
+void StartDefaultTask(void *argument);
+void sensorStartTask(void *argument);
+void pidStartTask(void *argument);
+void uartStartTask(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 void SetServoAngle(float angle);
@@ -123,18 +167,61 @@ int main(void)
 
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 
-  memsHazir = LIS3DSH_Initialization(&mems, &hspi1, CS_GPIO_Port, CS_Pin);
 
-  if (memsHazir)
-  {
-      LIS3DSH_Calibrate(&mems, 200);
-  }
-
-  PID_Init(&rollPid, 1.7f, 0.1f, 0.005f, -90.0f, 90.0f, -300.0f, 300.0f);
-  SetServoAngle(90.0f);
-  PID_Reset(&rollPid);
 
   /* USER CODE END 2 */
+
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* Create the queue(s) */
+  /* creation of aciKuyrukPID */
+  aciKuyrukPIDHandle = osMessageQueueNew (1, sizeof(uint32_t), &aciKuyrukPID_attributes);
+
+  /* creation of aciKuyrukUART */
+  aciKuyrukUARTHandle = osMessageQueueNew (1, sizeof(uint32_t), &aciKuyrukUART_attributes);
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* creation of sensorTask */
+  sensorTaskHandle = osThreadNew(sensorStartTask, NULL, &sensorTask_attributes);
+
+  /* creation of pidTask */
+  pidTaskHandle = osThreadNew(pidStartTask, NULL, &pidTask_attributes);
+
+  /* creation of uartTask */
+  uartTaskHandle = osThreadNew(uartStartTask, NULL, &uartTask_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -143,41 +230,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if (memsHazir && veriHazir)
-	     {
-	         veriHazir = false;
-
-	         LIS3DSH_Read_XYZ(&mems);
-
-	         mems.roll  = atan2f(mems.y_cal, sqrtf(mems.x_cal * mems.x_cal + mems.z_cal * mems.z_cal)) * RAD_TO_DEG;
-	         mems.pitch = atan2f(-mems.x_cal, sqrtf(mems.y_cal * mems.y_cal + mems.z_cal * mems.z_cal)) * RAD_TO_DEG;
-
-	         mems.roll_filtered  = FILTER_ALPHA * mems.roll  + (1.0f - FILTER_ALPHA) * mems.roll_filtered;
-	         mems.pitch_filtered = FILTER_ALPHA * mems.pitch + (1.0f - FILTER_ALPHA) * mems.pitch_filtered;
-
-	         float servoKomut = PID_Compute(&rollPid, 90.0f, mems.roll_filtered + 90.0f);
-	         debugServoKomut = servoKomut;
-	         SetServoAngle(90.0f + servoKomut);
 
 
-	         HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, (mems.pitch_filtered < -15.0f) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-	         HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, (mems.pitch_filtered >  15.0f) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-	         HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, (mems.roll_filtered  < -15.0f) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-	         HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, (mems.roll_filtered  >  15.0f) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
-	         static uint8_t uartSayac = 0;
-	         uartSayac++;
-	         if (uartSayac >= 5)
-	             {
-	                 uartSayac = 0;
-	                 char rollStr[16], servoStr[16], buffer[64];
-	                 floatYazdir(rollStr, mems.roll_filtered);
-	                 floatYazdir(servoStr, servoKomut);
-	                 sprintf(buffer, "%s,%s,%d\r\n", rollStr, servoStr, debugPulse);
-	                 UART_SendString(buffer);
-	             }
-
-	     }
   }
   /* USER CODE END 3 */
 }
@@ -402,7 +457,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -448,6 +503,142 @@ void floatYazdir(char *hedef, float deger)
 }
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_sensorStartTask */
+/**
+* @brief Function implementing the sensorTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_sensorStartTask */
+void sensorStartTask(void *argument)
+{
+    memsHazir = LIS3DSH_Initialization(&mems, &hspi1, CS_GPIO_Port, CS_Pin);
+    if (memsHazir)
+        LIS3DSH_Calibrate(&mems, 200);
+
+    for(;;)
+    {
+        if (memsHazir && veriHazir)
+        {
+            veriHazir = false;
+
+            LIS3DSH_Read_XYZ(&mems);
+
+            mems.roll  = atan2f(mems.y_cal, sqrtf(mems.x_cal*mems.x_cal + mems.z_cal*mems.z_cal)) * RAD_TO_DEG;
+            mems.pitch = atan2f(-mems.x_cal, sqrtf(mems.y_cal*mems.y_cal + mems.z_cal*mems.z_cal)) * RAD_TO_DEG;
+
+            mems.roll_filtered  = FILTER_ALPHA * mems.roll  + (1.0f - FILTER_ALPHA) * mems.roll_filtered;
+            mems.pitch_filtered = FILTER_ALPHA * mems.pitch + (1.0f - FILTER_ALPHA) * mems.pitch_filtered;
+
+            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, (mems.pitch_filtered < -15.0f) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, (mems.pitch_filtered >  15.0f) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, (mems.roll_filtered  < -15.0f) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, (mems.roll_filtered  >  15.0f) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+            float aciDegeri = mems.roll_filtered;
+
+            osMessageQueuePut(aciKuyrukPIDHandle, &aciDegeri, 0, 0);
+            osMessageQueuePut(aciKuyrukUARTHandle, &aciDegeri, 0, 0);
+        }
+        osDelay(1);
+    }
+}
+
+/* USER CODE BEGIN Header_pidStartTask */
+/**
+* @brief Function implementing the pidTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_pidStartTask */
+void pidStartTask(void *argument)
+{
+    PID_Init(&rollPid, 1.7f, 0.05f, 0.005f, -90.0f, 90.0f, -150.0f, 150.0f);
+    SetServoAngle(90.0f);
+    PID_Reset(&rollPid);
+
+    float alinanAci;
+
+    for(;;)
+    {
+        if (osMessageQueueGet(aciKuyrukPIDHandle, &alinanAci, NULL, osWaitForever) == osOK)
+        {
+            float servoKomut = PID_Compute(&rollPid, 90.0f, alinanAci + 90.0f);
+            debugServoKomut = servoKomut;
+            SetServoAngle(90.0f + servoKomut);
+        }
+    }
+}
+
+/* USER CODE BEGIN Header_uartStartTask */
+/**
+* @brief Function implementing the uartTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_uartStartTask */
+void uartStartTask(void *argument)
+{
+    float alinanAci;
+    uint8_t sayac = 0;
+
+    for(;;)
+    {
+        if (osMessageQueueGet(aciKuyrukUARTHandle, &alinanAci, NULL, osWaitForever) == osOK)
+        {
+            sayac++;
+            if (sayac >= 5)
+            {
+                sayac = 0;
+                char rollStr[16], servoStr[16],  buffer[64];
+                floatYazdir(rollStr, alinanAci);
+                floatYazdir(servoStr, debugServoKomut);
+                sprintf(buffer, "%s,%s,%d\r\n", rollStr, servoStr, debugPulse);
+                UART_SendString(buffer);
+            }
+        }
+    }
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM6 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.

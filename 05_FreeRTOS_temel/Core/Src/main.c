@@ -69,6 +69,18 @@ const osThreadAttr_t ledTask4_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for buttonTask */
+osThreadId_t buttonTaskHandle;
+const osThreadAttr_t buttonTask_attributes = {
+  .name = "buttonTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for hizKuyruk */
+osMessageQueueId_t hizKuyrukHandle;
+const osMessageQueueAttr_t hizKuyruk_attributes = {
+  .name = "hizKuyruk"
+};
 /* Definitions for sayacMutex */
 osMutexId_t sayacMutexHandle;
 const osMutexAttr_t sayacMutex_attributes = {
@@ -77,6 +89,7 @@ const osMutexAttr_t sayacMutex_attributes = {
 /* USER CODE BEGIN PV */
 
 volatile uint32_t toplamsayac = 0;
+volatile uint32_t hiz = 0;
 
 /* USER CODE END PV */
 
@@ -87,6 +100,7 @@ void StartDefaultTask(void *argument);
 void StartTask02(void *argument);
 void StartTask03(void *argument);
 void StartTask04(void *argument);
+void StartButtonTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -149,6 +163,10 @@ int main(void)
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+  /* Create the queue(s) */
+  /* creation of hizKuyruk */
+  hizKuyrukHandle = osMessageQueueNew (1, sizeof(uint32_t), &hizKuyruk_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
@@ -165,6 +183,9 @@ int main(void)
 
   /* creation of ledTask4 */
   ledTask4Handle = osThreadNew(StartTask04, NULL, &ledTask4_attributes);
+
+  /* creation of buttonTask */
+  buttonTaskHandle = osThreadNew(StartButtonTask, NULL, &buttonTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -243,10 +264,17 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PA0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PD12 PD13 PD14 PD15 */
   GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
@@ -273,14 +301,15 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
+  hiz = 500;
   /* Infinite loop */
   for(;;)
   {
-	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
-	osMutexAcquire(sayacMutexHandle, osWaitForever);
-	toplamsayac++;
-	osMutexRelease(sayacMutexHandle);
-    osDelay(500);
+	uint32_t yeniHiz;
+	 if (osMessageQueueGet(hizKuyrukHandle, &yeniHiz, NULL, 0) == osOK)
+	        hiz = yeniHiz;
+	    HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
+	    osDelay(hiz);
   }
   /* USER CODE END 5 */
 }
@@ -349,6 +378,36 @@ void StartTask04(void *argument)
     osDelay(700);
   }
   /* USER CODE END StartTask04 */
+}
+
+/* USER CODE BEGIN Header_StartButtonTask */
+/**
+* @brief Function implementing the buttonTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartButtonTask */
+void StartButtonTask(void *argument)
+{
+  /* USER CODE BEGIN StartButtonTask */
+	uint32_t hizlar[3] = {800, 300, 100};
+	uint8_t index = 0;
+	GPIO_PinState onceki = GPIO_PIN_RESET;
+
+  /* Infinite loop */
+  for(;;)
+  {
+	GPIO_PinState simdiki = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+	if(simdiki == GPIO_PIN_SET && onceki == GPIO_PIN_RESET){
+		index++;
+		if(index > 2)
+			index = 0;
+		osMessageQueuePut(hizKuyrukHandle, &hizlar[index], 0, 0);
+	}
+	onceki = simdiki;
+    osDelay(20);
+  }
+  /* USER CODE END StartButtonTask */
 }
 
 /**

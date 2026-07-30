@@ -69,7 +69,14 @@ const osThreadAttr_t ledTask4_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for sayacMutex */
+osMutexId_t sayacMutexHandle;
+const osMutexAttr_t sayacMutex_attributes = {
+  .name = "sayacMutex"
+};
 /* USER CODE BEGIN PV */
+
+volatile uint32_t toplamsayac = 0;
 
 /* USER CODE END PV */
 
@@ -126,6 +133,9 @@ int main(void)
 
   /* Init scheduler */
   osKernelInitialize();
+  /* Create the mutex(es) */
+  /* creation of sayacMutex */
+  sayacMutexHandle = osMutexNew(&sayacMutex_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -267,6 +277,9 @@ void StartDefaultTask(void *argument)
   for(;;)
   {
 	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
+	osMutexAcquire(sayacMutexHandle, osWaitForever);
+	toplamsayac++;
+	osMutexRelease(sayacMutexHandle);
     osDelay(500);
   }
   /* USER CODE END 5 */
@@ -286,6 +299,9 @@ void StartTask02(void *argument)
   for(;;)
   {
 	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
+	osMutexAcquire(sayacMutexHandle, osWaitForever);
+	toplamsayac++;
+	osMutexRelease(sayacMutexHandle);
     osDelay(150);
   }
   /* USER CODE END StartTask02 */
@@ -305,6 +321,9 @@ void StartTask03(void *argument)
   for(;;)
   {
 	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+	osMutexAcquire(sayacMutexHandle, osWaitForever);
+	toplamsayac++;
+	osMutexRelease(sayacMutexHandle);
     osDelay(250);
   }
   /* USER CODE END StartTask03 */
@@ -324,6 +343,9 @@ void StartTask04(void *argument)
   for(;;)
   {
 	HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+	osMutexAcquire(sayacMutexHandle, osWaitForever);
+	toplamsayac++;
+	osMutexRelease(sayacMutexHandle);
     osDelay(700);
   }
   /* USER CODE END StartTask04 */

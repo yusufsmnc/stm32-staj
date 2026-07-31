@@ -103,6 +103,8 @@ PID_t rollPid;
 
 volatile bool memsHazir = false;
 volatile bool veriHazir = false;
+volatile bool sensorHata = false;
+volaite uint32_t sonVeriZamani = 0;
 volatile uint16_t debugPulse = 0;
 volatile float debugServoKomut = 0;
 /* USER CODE END PV */
@@ -468,8 +470,10 @@ static void MX_GPIO_Init(void)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    if (GPIO_Pin == GPIO_PIN_0)
+    if (GPIO_Pin == GPIO_PIN_0){
         veriHazir = true;
+        sonVeriZamani = HAL_GetTick();
+    }
 }
 
 void SetServoAngle(float angle)
@@ -532,14 +536,17 @@ void StartDefaultTask(void *argument)
 void sensorStartTask(void *argument)
 {
     memsHazir = LIS3DSH_Initialization(&mems, &hspi1, CS_GPIO_Port, CS_Pin);
-    if (memsHazir)
+    if (memsHazir){
         LIS3DSH_Calibrate(&mems, 200);
+        sonVeriZamani = HAL_GetTick();
+    }
 
     for(;;)
     {
         if (memsHazir && veriHazir)
         {
             veriHazir = false;
+            sensorHata = false;
 
             LIS3DSH_Read_XYZ(&mems);
 
@@ -559,6 +566,10 @@ void sensorStartTask(void *argument)
             osMessageQueuePut(aciKuyrukPIDHandle, &aciDegeri, 0, 0);
             osMessageQueuePut(aciKuyrukUARTHandle, &aciDegeri, 0, 0);
         }
+
+        if(memsHazir && (HAL_GetTick() - sonVeriZamani > 100))
+        	sensorHata = true;
+
         osDelay(1);
     }
 }

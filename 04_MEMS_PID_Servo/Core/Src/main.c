@@ -156,7 +156,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -549,7 +549,7 @@ void sensorStartTask(void *argument)
     memsHazir = LIS3DSH_Initialization(&mems, &hspi1, CS_GPIO_Port, CS_Pin);
     if (memsHazir)
     {
-        LIS3DSH_Calibrate(&mems, 200);
+        LIS3DSH_Calibrate(&mems, 400);
         sonVeriZamani = HAL_GetTick();
         durum = DURUM_CALISIYOR;   // kalibrasyon bitti, calismaya gec
     }
@@ -607,10 +607,7 @@ void sensorStartTask(void *argument)
 /* USER CODE END Header_pidStartTask */
 void pidStartTask(void *argument)
 {
-    PID_Init(&rollPid, 1.7f, 0.05f, 0.005f, -90.0f, 90.0f, -150.0f, 150.0f);
-    SetServoAngle(90.0f);
-    PID_Reset(&rollPid);
-
+    bool ilkCalisma = true;
     float alinanAci;
 
     for(;;)
@@ -623,6 +620,12 @@ void pidStartTask(void *argument)
                 break;
 
             case DURUM_CALISIYOR:
+                if (ilkCalisma)
+                {
+                    PID_Init(&rollPid, 1.7f, 0.03f, 0.005f, -90.0f, 90.0f, -80.0f, 80.0f);
+                    PID_Reset(&rollPid);
+                    ilkCalisma = false;
+                }
                 if (osMessageQueueGet(aciKuyrukPIDHandle, &alinanAci, NULL, 50) == osOK)
                 {
                     float servoKomut = PID_Compute(&rollPid, 90.0f, alinanAci + 90.0f);
@@ -633,7 +636,6 @@ void pidStartTask(void *argument)
 
             case DURUM_HATA:
                 SetServoAngle(90.0f);
-                PID_Reset(&rollPid);   // hatadan cikinca temiz baslasin
                 osDelay(50);
                 break;
 

@@ -33,27 +33,27 @@ float PID_Compute(PID_t *pid, float hedef, float olcum)
     float dt = (simdiki_zaman - pid->onceki_zaman) / 1000.0f;
     pid->onceki_zaman = simdiki_zaman;
 
-    if (dt <= 0.0f)
-        dt = 0.001f;
+    if (dt <= 0.0f) dt = 0.001f;
 
     float hata = hedef - olcum;
 
+    // Hata isaret degistirdiyse VEYA cok kucukse integral'i sifirla
+    if (((hata > 0 && pid->onceki_hata < 0) || (hata < 0 && pid->onceki_hata > 0))
+        || fabsf(hata) < 1.5f)
+    {
+        pid->integral = 0.0f;
+    }
+
     pid->integral += hata * dt;
-    if (pid->integral > pid->integral_max)
-        pid->integral = pid->integral_max;
-    if (pid->integral < pid->integral_min)
-        pid->integral = pid->integral_min;
+    if (pid->integral > pid->integral_max) pid->integral = pid->integral_max;
+    if (pid->integral < pid->integral_min) pid->integral = pid->integral_min;
 
     float turev = (hata - pid->onceki_hata) / dt;
 
-    float cikis = (pid->Kp * hata)
-                + (pid->Ki * pid->integral)
-                + (pid->Kd * turev);
+    float cikis = (pid->Kp * hata) + (pid->Ki * pid->integral) + (pid->Kd * turev);
 
-    if (cikis > pid->cikis_max)
-        cikis = pid->cikis_max;
-    if (cikis < pid->cikis_min)
-        cikis = pid->cikis_min;
+    if (cikis > pid->cikis_max) cikis = pid->cikis_max;
+    if (cikis < pid->cikis_min) cikis = pid->cikis_min;
 
     pid->onceki_hata = hata;
 

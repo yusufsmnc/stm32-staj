@@ -34,6 +34,13 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
+typedef enum {
+	DURUM_KALIBRASYON,
+	DURUM_CALISIYOR,
+	DURUM_HATA,
+	DURUM_DURDURULDU
+} SistemDurumu;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -69,21 +76,21 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t sensorTaskHandle;
 const osThreadAttr_t sensorTask_attributes = {
   .name = "sensorTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for pidTask */
 osThreadId_t pidTaskHandle;
 const osThreadAttr_t pidTask_attributes = {
   .name = "pidTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for uartTask */
 osThreadId_t uartTaskHandle;
 const osThreadAttr_t uartTask_attributes = {
   .name = "uartTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for aciKuyrukPID */
@@ -104,9 +111,11 @@ PID_t rollPid;
 volatile bool memsHazir = false;
 volatile bool veriHazir = false;
 volatile bool sensorHata = false;
-volaite uint32_t sonVeriZamani = 0;
+volatile uint32_t sonVeriZamani = 0;
 volatile uint16_t debugPulse = 0;
 volatile float debugServoKomut = 0;
+
+volatile SistemDurumu durum = DURUM_KALIBRASYON;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -535,10 +544,18 @@ void StartDefaultTask(void *argument)
 /* USER CODE END Header_sensorStartTask */
 void sensorStartTask(void *argument)
 {
+    durum = DURUM_KALIBRASYON;
+
     memsHazir = LIS3DSH_Initialization(&mems, &hspi1, CS_GPIO_Port, CS_Pin);
-    if (memsHazir){
+    if (memsHazir)
+    {
         LIS3DSH_Calibrate(&mems, 200);
         sonVeriZamani = HAL_GetTick();
+        durum = DURUM_CALISIYOR;   // kalibrasyon bitti, calismaya gec
+    }
+    else
+    {
+        durum = DURUM_HATA;   // sensor hic kurulamadi
     }
 
     for(;;)
@@ -562,13 +579,20 @@ void sensorStartTask(void *argument)
             HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, (mems.roll_filtered  >  15.0f) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
             float aciDegeri = mems.roll_filtered;
-
             osMessageQueuePut(aciKuyrukPIDHandle, &aciDegeri, 0, 0);
             osMessageQueuePut(aciKuyrukUARTHandle, &aciDegeri, 0, 0);
         }
 
-        if(memsHazir && (HAL_GetTick() - sonVeriZamani > 100))
-        	sensorHata = true;
+        if (memsHazir && (HAL_GetTick() - sonVeriZamani > 100))
+        {
+            sensorHata = true;
+            if (durum == DURUM_CALISIYOR)
+            	durum = DURUM_HATA;
+        }
+        else if (!sensorHata && durum == DURUM_HATA)
+        {
+        	durum = DURUM_CALISIYOR;   // hata gecti, geri don
+        }
 
         osDelay(1);
     }
@@ -591,11 +615,32 @@ void pidStartTask(void *argument)
 
     for(;;)
     {
-        if (osMessageQueueGet(aciKuyrukPIDHandle, &alinanAci, NULL, osWaitForever) == osOK)
+        switch (durum)
         {
-            float servoKomut = PID_Compute(&rollPid, 90.0f, alinanAci + 90.0f);
-            debugServoKomut = servoKomut;
-            SetServoAngle(90.0f + servoKomut);
+            case DURUM_KALIBRASYON:
+                SetServoAngle(90.0f);
+                osDelay(50);
+                break;
+
+            case DURUM_CALISIYOR:
+                if (osMessageQueueGet(aciKuyrukPIDHandle, &alinanAci, NULL, 50) == osOK)
+                {
+                    float servoKomut = PID_Compute(&rollPid, 90.0f, alinanAci + 90.0f);
+                    debugServoKomut = servoKomut;
+                    SetServoAngle(90.0f + servoKomut);
+                }
+                break;
+
+            case DURUM_HATA:
+                SetServoAngle(90.0f);
+                PID_Reset(&rollPid);   // hatadan cikinca temiz baslasin
+                osDelay(50);
+                break;
+
+            case DURUM_DURDURULDU:
+                SetServoAngle(90.0f);
+                osDelay(50);
+                break;
         }
     }
 }
@@ -620,10 +665,22 @@ void uartStartTask(void *argument)
             if (sayac >= 5)
             {
                 sayac = 0;
-                char rollStr[16], servoStr[16],  buffer[64];
+
+                char rollStr[16], servoStr[16], buffer[80];
                 floatYazdir(rollStr, alinanAci);
                 floatYazdir(servoStr, debugServoKomut);
-                sprintf(buffer, "%s,%s,%d\r\n", rollStr, servoStr, debugPulse);
+
+                char *durumStr;
+                switch (durum)
+                {
+                    case DURUM_KALIBRASYON: durumStr = "KAL";  break;
+                    case DURUM_CALISIYOR:   durumStr = "OK";   break;
+                    case DURUM_HATA:        durumStr = "HATA"; break;
+                    case DURUM_DURDURULDU:  durumStr = "DUR";  break;
+                    default:                durumStr = "?";    break;
+                }
+
+                sprintf(buffer, "%s,%s,%d,%s\r\n", rollStr, servoStr, debugPulse, durumStr);
                 UART_SendString(buffer);
             }
         }

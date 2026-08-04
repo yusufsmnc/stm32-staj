@@ -47,10 +47,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
-DMA_HandleTypeDef hdma_adc1;
 
 DAC_HandleTypeDef hdac;
-DMA_HandleTypeDef hdma_dac1;
 
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim6;
@@ -60,16 +58,14 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 
 uint32_t wave[WAVE_SAMPLES];
-uint16_t currentDACValue;
 uint16_t adcBuffer[ADC_BUFFER_BOYUTU];
-uint16_t kopyaBuffer[ADC_BUFFER_BOYUTU];
+uint32_t currentDACValue = 0;
 volatile bool adcBufferHazir = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_DMA_Init(void);
 static void MX_DAC_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_ADC1_Init(void);
@@ -89,29 +85,21 @@ void Generate_SinWave(void){
 }
 
 
-void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac){
-	static int index = 0;
-	currentDACValue = wave[index];
-	index = (index + 1) % 100;
-}
-
-
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
-{
-    if (hadc->Instance == ADC1)
-    {
-        memcpy(kopyaBuffer, adcBuffer, sizeof(adcBuffer));
-        adcBufferHazir = true;
-    }
-}
-
-
-
 void UART_SendString(char *str)
 {
     HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), 100);
 }
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim->Instance == TIM6)
+    {
+        static uint16_t index = 0;
+        HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, wave[index]);
+        currentDACValue = wave[index];
+        index = (index + 1) % WAVE_SAMPLES;
+    }
+}
 
 /* USER CODE END 0 */
 
@@ -144,19 +132,17 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
   MX_DAC_Init();
   MX_TIM6_Init();
   MX_ADC1_Init();
   MX_USART2_UART_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  Generate_SinWave();
-  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, wave, WAVE_SAMPLES, DAC_ALIGN_12B_R);
-  HAL_TIM_Base_Start(&htim6);
 
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuffer, ADC_BUFFER_BOYUTU);
-  HAL_TIM_Base_Start(&htim3);
+
+  Generate_SinWave();
+  HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
+  HAL_TIM_Base_Start_IT(&htim6);
 
 
   /* USER CODE END 2 */
@@ -169,7 +155,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-
+	  /*
 	  if (adcBufferHazir)
 	  {
 	      adcBufferHazir = false;
@@ -181,6 +167,7 @@ int main(void)
 	              UART_SendString(satir);
 	          }
 	  }
+	  */
 
   }
   /* USER CODE END 3 */
@@ -432,26 +419,6 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
-
-}
-
-/**
-  * Enable DMA controller clock
-  */
-static void MX_DMA_Init(void)
-{
-
-  /* DMA controller clock enable */
-  __HAL_RCC_DMA1_CLK_ENABLE();
-  __HAL_RCC_DMA2_CLK_ENABLE();
-
-  /* DMA interrupt init */
-  /* DMA1_Stream5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
-  /* DMA2_Stream0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 
 }
 

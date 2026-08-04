@@ -23,6 +23,8 @@
 /* USER CODE BEGIN Includes */
 #include "math.h"
 #include "stdbool.h"
+#include "string.h"
+#include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,9 +60,9 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 
 uint32_t wave[WAVE_SAMPLES];
-// uint16_t currentDACValue;
-uint16_t currentADCValue = 0;
+uint16_t currentDACValue;
 uint16_t adcBuffer[ADC_BUFFER_BOYUTU];
+uint16_t kopyaBuffer[ADC_BUFFER_BOYUTU];
 volatile bool adcBufferHazir = false;
 /* USER CODE END PV */
 
@@ -71,8 +73,8 @@ static void MX_DMA_Init(void);
 static void MX_DAC_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_ADC1_Init(void);
-static void MX_TIM3_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -86,25 +88,30 @@ void Generate_SinWave(void){
 	}
 }
 
-/*
+
 void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac){
 	static int index = 0;
 	currentDACValue = wave[index];
 	index = (index + 1) % 100;
 }
 
-*/
+
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
-	if (hadc->Instance == ADC1)
-	    {
-	        adcBufferHazir = true;
-
-	        static int index = 0;
-	        currentADCValue = adcBuffer[index];
-	        index = (index + 1) % ADC_BUFFER_BOYUTU;
-	    }
+    if (hadc->Instance == ADC1)
+    {
+        memcpy(kopyaBuffer, adcBuffer, sizeof(adcBuffer));
+        adcBufferHazir = true;
+    }
 }
+
+
+
+void UART_SendString(char *str)
+{
+    HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), 100);
+}
+
 
 /* USER CODE END 0 */
 
@@ -141,8 +148,8 @@ int main(void)
   MX_DAC_Init();
   MX_TIM6_Init();
   MX_ADC1_Init();
-  MX_TIM3_Init();
   MX_USART2_UART_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   Generate_SinWave();
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, wave, WAVE_SAMPLES, DAC_ALIGN_12B_R);
@@ -150,6 +157,7 @@ int main(void)
 
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuffer, ADC_BUFFER_BOYUTU);
   HAL_TIM_Base_Start(&htim3);
+
 
   /* USER CODE END 2 */
 
@@ -160,17 +168,20 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if (adcBufferHazir)
-	     {
-	         adcBufferHazir = false;
 
-	         char buffer[16];
-	         for (int i = 0; i < ADC_BUFFER_BOYUTU; i++)
-	         {
-	             sprintf(buffer, "%d\r\n", adcBuffer[i]);
-	             //UART_SendString(buffer);
-	         }
-	     }
+
+	  if (adcBufferHazir)
+	  {
+	      adcBufferHazir = false;
+	      char satir[16];
+	      UART_SendString("START\r\n");
+	      for(int i = 0; i < ADC_BUFFER_BOYUTU; i++)
+	          {
+	              sprintf(satir,"%d\r\n",kopyaBuffer[i]);
+	              UART_SendString(satir);
+	          }
+	  }
+
   }
   /* USER CODE END 3 */
 }

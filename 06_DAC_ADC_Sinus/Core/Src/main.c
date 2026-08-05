@@ -99,6 +99,21 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         currentDACValue = wave[index];
         index = (index + 1) % WAVE_SAMPLES;
     }
+
+    if (htim->Instance == TIM3){
+    	static uint16_t adcIndex = 0;
+
+    	if(!adcBufferHazir){
+    		adcBuffer[adcIndex] = HAL_ADC_GetValue(&hadc1);
+    		HAL_ADC_Start(&hadc1);
+    		adcIndex++;
+
+    		if(adcIndex >= ADC_BUFFER_BOYUTU){
+    			adcIndex = 0;
+    			adcBufferHazir = true;
+    		}
+    	}
+    }
 }
 
 /* USER CODE END 0 */
@@ -144,6 +159,9 @@ int main(void)
   HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
   HAL_TIM_Base_Start_IT(&htim6);
 
+  HAL_ADC_Start(&hadc1);
+  HAL_TIM_Base_Start_IT(&htim3);
+
 
   /* USER CODE END 2 */
 
@@ -155,7 +173,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  /*
+
 	  if (adcBufferHazir)
 	  {
 	      adcBufferHazir = false;
@@ -163,11 +181,11 @@ int main(void)
 	      UART_SendString("START\r\n");
 	      for(int i = 0; i < ADC_BUFFER_BOYUTU; i++)
 	          {
-	              sprintf(satir,"%d\r\n",kopyaBuffer[i]);
+	              sprintf(satir,"%d\r\n",adcBuffer[i]);
 	              UART_SendString(satir);
 	          }
 	  }
-	  */
+
 
   }
   /* USER CODE END 3 */
@@ -244,7 +262,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_TRGO;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 1;
-  hadc1.Init.DMAContinuousRequests = ENABLE;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {

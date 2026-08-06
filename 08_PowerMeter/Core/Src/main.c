@@ -58,11 +58,14 @@ DMA_HandleTypeDef hdma_dac2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim6;
 
+UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN PV */
 
 uint16_t wave_V[WAVE_SAMPLES];    	// gerilim sinüsü
 uint16_t wave_I[WAVE_SAMPLES];    	// akım sinüsü (faz kaymalı)
 uint16_t adcBuf[ADC_BUFFER_BOYUTU];
+uint16_t dac2Index = 0;
 volatile bool adcHazir = false;
 
 /* USER CODE END PV */
@@ -75,6 +78,7 @@ static void MX_DAC_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -93,6 +97,13 @@ void Generate_Waves(float faz_aci){
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc){
 	if(hadc->Instance == ADC1)
 		adcHazir = true;
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+	if(htim->Instance == TIM6){
+		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_2, DAC_ALIGN_12B_R, wave_I[dac2Index]);
+		dac2Index = (dac2Index + 1) % WAVE_SAMPLES;
+	}
 }
 
 /* USER CODE END 0 */
@@ -131,14 +142,16 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM6_Init();
   MX_ADC1_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   Generate_Waves(30.0f);
 
-  HAL_TIM_Base_Start(&htim6);
+  HAL_TIM_Base_Start_IT(&htim6);
   HAL_TIM_Base_Start(&htim3);
 
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)wave_V, WAVE_SAMPLES, DAC_ALIGN_12B_R);
-  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_2, (uint32_t*)wave_I, WAVE_SAMPLES, DAC_ALIGN_12B_R);
+
+  HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
 
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuf, ADC_BUFFER_BOYUTU);
   /* USER CODE END 2 */
@@ -383,6 +396,39 @@ static void MX_TIM6_Init(void)
   /* USER CODE BEGIN TIM6_Init 2 */
 
   /* USER CODE END TIM6_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
 
 }
 

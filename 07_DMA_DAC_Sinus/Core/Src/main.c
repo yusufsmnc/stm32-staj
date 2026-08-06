@@ -65,6 +65,7 @@ uint16_t wave[WAVE_SAMPLES];
 uint16_t adcBuffer[ADC_BUFFER_BOYUTU];
 
 volatile bool adcBufferHazir = false;
+float vrms = 0.0f;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -87,6 +88,25 @@ void Generate_SinWave(void){
 	for(int i = 0; i < WAVE_SAMPLES; i++){
 		wave[i] = (uint16_t)((sinf(2 * M_PI * i / WAVE_SAMPLES) + 1) * 2047);
 	}
+}
+
+float Calculate_Vrms(void){
+	// DC ortalaması
+	float offset = 0.0f;
+	for(int i = 0; i < ADC_BUFFER_BOYUTU; i++){
+		offset += (float)adcBuffer[i];
+	}
+	offset /= (float)ADC_BUFFER_BOYUTU;
+
+	// AC bileşeninin kareler ortalaması
+	float toplam = 0.0f;
+	for(int i = 0; i < ADC_BUFFER_BOYUTU; i++){
+		float ac = (float)adcBuffer[i] - offset;
+		toplam += ac * ac;
+	}
+
+	// Voltaja çevir ve Karekök
+	return (sqrtf(toplam / (float)ADC_BUFFER_BOYUTU) / 4095.0f) * 3.3f;
 }
 
 void UART_SendString(char *str)
@@ -158,6 +178,7 @@ int main(void)
 	  if (adcBufferHazir)
 	      {
 	          adcBufferHazir = false;
+	          vrms = Calculate_Vrms();
 
 	          char satir[16];
 	          UART_SendString("START\r\n");

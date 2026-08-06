@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include "power_meter.h"
 #include "math.h"
 #include "string.h"
 #include "stdio.h"
@@ -67,6 +68,7 @@ uint16_t wave_I[WAVE_SAMPLES];    	// akım sinüsü (faz kaymalı)
 uint16_t adcBuf[ADC_BUFFER_BOYUTU];
 uint16_t dac2Index = 0;
 volatile bool adcHazir = false;
+PowerMeter_t meter;
 
 /* USER CODE END PV */
 
@@ -144,7 +146,8 @@ int main(void)
   MX_ADC1_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  Generate_Waves(30.0f);
+  PowerMeter_Init(&meter, PM_FAZ_ENDUKTIF_30);
+  Generate_Waves(meter.faz_aci);
 
   HAL_TIM_Base_Start_IT(&htim6);
   HAL_TIM_Base_Start(&htim3);
@@ -163,6 +166,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  if (adcHazir) {
+	      adcHazir = false;
+	      PowerMeter_Calculate(&meter, adcBuf);
+	      PowerMeter_Display(&meter, &huart2);
+	  }
   }
   /* USER CODE END 3 */
 }

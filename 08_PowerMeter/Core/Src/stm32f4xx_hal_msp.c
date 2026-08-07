@@ -27,6 +27,8 @@ extern DMA_HandleTypeDef hdma_adc1;
 
 extern DMA_HandleTypeDef hdma_dac1;
 
+extern DMA_HandleTypeDef hdma_dac2;
+
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
 
@@ -210,9 +212,24 @@ void HAL_DAC_MspInit(DAC_HandleTypeDef* hdac)
 
     __HAL_LINKDMA(hdac,DMA_Handle1,hdma_dac1);
 
-    /* DAC interrupt Init */
-    HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
+    /* DAC2 Init */
+    hdma_dac2.Instance = DMA1_Stream6;
+    hdma_dac2.Init.Channel = DMA_CHANNEL_7;
+    hdma_dac2.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    hdma_dac2.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_dac2.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_dac2.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+    hdma_dac2.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+    hdma_dac2.Init.Mode = DMA_CIRCULAR;
+    hdma_dac2.Init.Priority = DMA_PRIORITY_LOW;
+    hdma_dac2.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    if (HAL_DMA_Init(&hdma_dac2) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(hdac,DMA_Handle2,hdma_dac2);
+
   /* USER CODE BEGIN DAC_MspInit 1 */
 
   /* USER CODE END DAC_MspInit 1 */
@@ -244,16 +261,7 @@ void HAL_DAC_MspDeInit(DAC_HandleTypeDef* hdac)
 
     /* DAC DMA DeInit */
     HAL_DMA_DeInit(hdac->DMA_Handle1);
-
-    /* DAC interrupt DeInit */
-  /* USER CODE BEGIN DAC:TIM6_DAC_IRQn disable */
-    /**
-    * Uncomment the line below to disable the "TIM6_DAC_IRQn" interrupt
-    * Be aware, disabling shared interrupt may affect other IPs
-    */
-    /* HAL_NVIC_DisableIRQ(TIM6_DAC_IRQn); */
-  /* USER CODE END DAC:TIM6_DAC_IRQn disable */
-
+    HAL_DMA_DeInit(hdac->DMA_Handle2);
   /* USER CODE BEGIN DAC_MspDeInit 1 */
 
   /* USER CODE END DAC_MspDeInit 1 */
@@ -287,9 +295,6 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
   /* USER CODE END TIM6_MspInit 0 */
     /* Peripheral clock enable */
     __HAL_RCC_TIM6_CLK_ENABLE();
-    /* TIM6 interrupt Init */
-    HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
   /* USER CODE BEGIN TIM6_MspInit 1 */
 
   /* USER CODE END TIM6_MspInit 1 */
@@ -323,16 +328,6 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
   /* USER CODE END TIM6_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_TIM6_CLK_DISABLE();
-
-    /* TIM6 interrupt DeInit */
-  /* USER CODE BEGIN TIM6:TIM6_DAC_IRQn disable */
-    /**
-    * Uncomment the line below to disable the "TIM6_DAC_IRQn" interrupt
-    * Be aware, disabling shared interrupt may affect other IPs
-    */
-    /* HAL_NVIC_DisableIRQ(TIM6_DAC_IRQn); */
-  /* USER CODE END TIM6:TIM6_DAC_IRQn disable */
-
   /* USER CODE BEGIN TIM6_MspDeInit 1 */
 
   /* USER CODE END TIM6_MspDeInit 1 */

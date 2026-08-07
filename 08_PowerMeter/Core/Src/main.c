@@ -54,6 +54,7 @@ DMA_HandleTypeDef hdma_adc1;
 
 DAC_HandleTypeDef hdac;
 DMA_HandleTypeDef hdma_dac1;
+DMA_HandleTypeDef hdma_dac2;
 
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim6;
@@ -63,7 +64,6 @@ TIM_HandleTypeDef htim6;
 uint16_t wave_V[WAVE_SAMPLES];    	// gerilim sinüsü
 uint16_t wave_I[WAVE_SAMPLES];    	// akım sinüsü (faz kaymalı)
 uint16_t adcBuf[ADC_BUFFER_BOYUTU];
-uint16_t dac2Index = 0;
 volatile bool adcHazir = false;
 PowerMeter_t meter;
 
@@ -90,13 +90,6 @@ void Generate_Waves(float faz_aci){
 		wave_V[i] = (uint16_t)((sinf(2.0f * (float)M_PI* i / WAVE_SAMPLES) + 1.0f) * 2047.0f);
 		wave_I[i] = (uint16_t)((sinf(2.0f * (float)M_PI * i / WAVE_SAMPLES - fazKaymaMiktari) + 1.0f) * 2047.0f);
 	}
-}
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-    if(htim->Instance == TIM6){
-        HAL_DAC_SetValue(&hdac, DAC_CHANNEL_2, DAC_ALIGN_12B_R, wave_I[dac2Index]);
-        dac2Index = (dac2Index + 1) % WAVE_SAMPLES;
-    }
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc){
@@ -146,11 +139,14 @@ int main(void)
   PowerMeter_Init(&meter, PM_FAZ_ENDUKTIF_30);
   Generate_Waves(meter.faz_aci);
 
-  HAL_TIM_Base_Start_IT(&htim6);
+  HAL_TIM_Base_Start(&htim6);
   HAL_TIM_Base_Start(&htim3);
 
+  // Önce CH2
+  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_2, (uint32_t*)wave_I, WAVE_SAMPLES, DAC_ALIGN_12B_R);
+
+  // Sonra CH1
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)wave_V, WAVE_SAMPLES, DAC_ALIGN_12B_R);
-  HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
 
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuf, ADC_BUFFER_BOYUTU);
   /* USER CODE END 2 */
@@ -310,7 +306,6 @@ static void MX_DAC_Init(void)
 
   /** DAC channel OUT2 config
   */
-  sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
   if (HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
@@ -418,6 +413,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+  /* DMA1_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
   /* DMA2_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);

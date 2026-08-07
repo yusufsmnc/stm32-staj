@@ -97,7 +97,7 @@ void PowerMeter_SetFaz(PowerMeter_t *pm, float faz_aci){
 }
 
 
-/*void PowerMeter_Display(PowerMeter_t *pm, UART_HandleTypeDef *huart){
+void PowerMeter_Display(PowerMeter_t *pm, UART_HandleTypeDef *huart){
     char buf[200];
 
     int len = snprintf(buf, sizeof(buf),
@@ -113,4 +113,3 @@ void PowerMeter_SetFaz(PowerMeter_t *pm, float faz_aci){
 
     HAL_UART_Transmit(huart, (uint8_t*)buf, len, 100);
 }
-*/

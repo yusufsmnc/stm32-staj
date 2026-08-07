@@ -38,7 +38,8 @@ void PowerMeter_Calculate(PowerMeter_t *pm, uint16_t *adcBuf){
 	mean_I /= (float)PM_SAMPLES;
 
 	/* AC bileşenleri çıkar */
-	float V[PM_SAMPLES], I[PM_SAMPLES];
+	static float V[PM_SAMPLES];
+	static float I[PM_SAMPLES];
 	for(int i = 0; i < PM_SAMPLES; i++){
 		V[i] = ((float)adcBuf[i * 2] - mean_V) / PM_ADC_MAX * PM_VREF;
 		I[i] = ((float)adcBuf[i * 2 + 1] - mean_I) / PM_ADC_MAX * PM_VREF;
@@ -95,7 +96,8 @@ void PowerMeter_SetFaz(PowerMeter_t *pm, float faz_aci){
     pm->faz_aci = faz_aci;
 }
 
-void PowerMeter_Display(PowerMeter_t *pm, UART_HandleTypeDef *huart){
+
+/*void PowerMeter_Display(PowerMeter_t *pm, UART_HandleTypeDef *huart){
     char buf[200];
 
     int len = snprintf(buf, sizeof(buf),
@@ -111,4 +113,4 @@ void PowerMeter_Display(PowerMeter_t *pm, UART_HandleTypeDef *huart){
 
     HAL_UART_Transmit(huart, (uint8_t*)buf, len, 100);
 }
-
+*/

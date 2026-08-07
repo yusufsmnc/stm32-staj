@@ -54,12 +54,9 @@ DMA_HandleTypeDef hdma_adc1;
 
 DAC_HandleTypeDef hdac;
 DMA_HandleTypeDef hdma_dac1;
-DMA_HandleTypeDef hdma_dac2;
 
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim6;
-
-UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
@@ -80,7 +77,6 @@ static void MX_DAC_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_ADC1_Init(void);
-static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -96,17 +92,19 @@ void Generate_Waves(float faz_aci){
 	}
 }
 
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc){
-	if(hadc->Instance == ADC1)
-		adcHazir = true;
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+    if(htim->Instance == TIM6){
+        HAL_DAC_SetValue(&hdac, DAC_CHANNEL_2, DAC_ALIGN_12B_R, wave_I[dac2Index]);
+        dac2Index = (dac2Index + 1) % WAVE_SAMPLES;
+    }
 }
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	if(htim->Instance == TIM6){
-		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_2, DAC_ALIGN_12B_R, wave_I[dac2Index]);
-		dac2Index = (dac2Index + 1) % WAVE_SAMPLES;
-	}
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc){
+    if(hadc->Instance == ADC1)
+        adcHazir = true;
 }
+
+
 
 /* USER CODE END 0 */
 
@@ -144,7 +142,6 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM6_Init();
   MX_ADC1_Init();
-  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   PowerMeter_Init(&meter, PM_FAZ_ENDUKTIF_30);
   Generate_Waves(meter.faz_aci);
@@ -153,7 +150,6 @@ int main(void)
   HAL_TIM_Base_Start(&htim3);
 
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)wave_V, WAVE_SAMPLES, DAC_ALIGN_12B_R);
-
   HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
 
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuf, ADC_BUFFER_BOYUTU);
@@ -169,7 +165,7 @@ int main(void)
 	  if (adcHazir) {
 	      adcHazir = false;
 	      PowerMeter_Calculate(&meter, adcBuf);
-	      PowerMeter_Display(&meter, &huart2);
+	      //PowerMeter_Display(&meter, &huart3);
 	  }
   }
   /* USER CODE END 3 */
@@ -265,7 +261,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_6;
+  sConfig.Channel = ADC_CHANNEL_7;
   sConfig.Rank = 2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -314,6 +310,7 @@ static void MX_DAC_Init(void)
 
   /** DAC channel OUT2 config
   */
+  sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
   if (HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
@@ -408,55 +405,19 @@ static void MX_TIM6_Init(void)
 }
 
 /**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART2_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART2_Init 0 */
-
-  /* USER CODE END USART2_Init 0 */
-
-  /* USER CODE BEGIN USART2_Init 1 */
-
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART2_Init 2 */
-
-  /* USER CODE END USART2_Init 2 */
-
-}
-
-/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
 {
 
   /* DMA controller clock enable */
-  __HAL_RCC_DMA1_CLK_ENABLE();
   __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
   /* DMA1_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
-  /* DMA1_Stream6_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
   /* DMA2_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);

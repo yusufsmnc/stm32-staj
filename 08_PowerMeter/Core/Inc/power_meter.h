@@ -50,7 +50,7 @@ typedef struct{
 
 bool PowerMeter_Init(PowerMeter_t *pm, float faz_aci);
 void PowerMeter_Calculate(PowerMeter_t *pm, uint16_t *adcBuf);
-void PowerMeter_Display(PowerMeter_t *pm, UART_HandleTypeDef *huart);
+//void PowerMeter_Display(PowerMeter_t *pm, UART_HandleTypeDef *huart);
 void PowerMeter_SetFaz(PowerMeter_t *pm, float faz_aci);
 
 #endif /* INC_POWER_METER_H_ */

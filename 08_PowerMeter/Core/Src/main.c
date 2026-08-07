@@ -66,9 +66,12 @@ UART_HandleTypeDef huart3;
 uint16_t wave_V[WAVE_SAMPLES];    	// gerilim sinüsü
 uint16_t wave_I[WAVE_SAMPLES];    	// akım sinüsü (faz kaymalı)
 uint16_t adcBuf[ADC_BUFFER_BOYUTU];
+uint8_t faz_idx = 1; 				// baslangic 30 derece
+
 volatile bool adcHazir = false;
 PowerMeter_t meter;
 
+float faz_listesi[] = {0.0f, 30.0f, 60.0f, -30.0f};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -100,6 +103,21 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc){
         adcHazir = true;
 }
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == GPIO_PIN_0)
+    {
+        // Debounce
+        static uint32_t lastTick = 0;
+        if (HAL_GetTick() - lastTick < 300)
+        	return;
+        lastTick = HAL_GetTick();
+
+        faz_idx = (faz_idx + 1) % 4;
+        PowerMeter_SetFaz(&meter, faz_listesi[faz_idx]);
+        Generate_Waves(faz_listesi[faz_idx]);
+    }
+}
 
 
 /* USER CODE END 0 */
@@ -466,12 +484,23 @@ static void MX_DMA_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 /* USER CODE BEGIN MX_GPIO_Init_1 */
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin : PA0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */

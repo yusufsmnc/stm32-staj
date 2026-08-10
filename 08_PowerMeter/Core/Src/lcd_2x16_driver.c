@@ -7,59 +7,74 @@
 
 #include "lcd_2x16_driver.h"
 
+static void LCD_Pulse(void)
+{
+    HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_SET);
+    for (volatile int i = 0; i < 200; i++);   // >1μs
+    HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_RESET);
+    for (volatile int i = 0; i < 200; i++);   // >37μs
+}
+
+static void LCD_Write4bit(uint8_t nibble)
+{
+    /* Üst 4 biti D4-D7 pinlerine yaz */
+    HAL_GPIO_WritePin(LCD_D4_PORT, LCD_D4_PIN, (nibble & 0x10) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(LCD_D5_PORT, LCD_D5_PIN, (nibble & 0x20) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(LCD_D6_PORT, LCD_D6_PIN, (nibble & 0x40) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(LCD_D7_PORT, LCD_D7_PIN, (nibble & 0x80) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    LCD_Pulse();
+}
+
 void LCD_Initialization(LCD_t *lcd){
-	HAL_Delay(50);
+    HAL_Delay(50);
 
-	// LCD henüz 8-bit modda çalışıyor ve yalnızca üst nibble gönderen özel fonksiyon kullanılmalı
-	LCD_Send_InitNibble(lcd, 0x30);
-	HAL_Delay(5);
-	LCD_Send_InitNibble(lcd, 0x30);
-	HAL_Delay(5);
-	LCD_Send_InitNibble(lcd, 0x30);
-	HAL_Delay(5);
+    HAL_GPIO_WritePin(LCD_RS_PORT, LCD_RS_PIN, GPIO_PIN_RESET);
 
-	// 4-bit moda geçiş
-	LCD_Send_InitNibble(lcd, 0x20);
-	HAL_Delay(1);
+    LCD_Write4bit(0x30);
+    HAL_Delay(5);
+    LCD_Write4bit(0x30);
+    HAL_Delay(1);
+    LCD_Write4bit(0x30);
+    HAL_Delay(1);
 
-	LCD_Send_Command(lcd, LCD_Cmd_FunctionSet | LCD_4BIT_MODE | LCD_2_LINE | LCD_5x8_DOTS);
-	HAL_Delay(1);
+    /* 4-bit moda geç */
+    LCD_Write4bit(0x20);
+    HAL_Delay(1);
 
-	lcd->display_control = LCD_Display_On;
-	LCD_Send_Command(lcd, LCD_Cmd_DisplayOnOff | lcd->display_control);
-	HAL_Delay(1);
+    LCD_Send_Command(lcd, LCD_Cmd_FunctionSet | LCD_4BIT_MODE | LCD_2_LINE | LCD_5x8_DOTS);
+    HAL_Delay(1);
 
-	LCD_Send_Command(lcd, LCD_Cmd_ClearDisplay);
-	HAL_Delay(2);
+    LCD_Send_Command(lcd, LCD_Cmd_DisplayOnOff);
+    HAL_Delay(1);
 
-	LCD_Send_Command(lcd, LCD_Cmd_EntryMode | LCD_ENTRY_LEFT | LCD_ENTRY_SHIFT_DECREMENT);
-	HAL_Delay(1);
+    LCD_Send_Command(lcd, LCD_Cmd_ClearDisplay);
+    HAL_Delay(2);
 
-	if(lcd->backlight)
-		LCD_Backlight_On(lcd);
-	else
-		LCD_Backlight_Off(lcd);
+    LCD_Send_Command(lcd, LCD_Cmd_EntryMode | LCD_ENTRY_LEFT | LCD_ENTRY_SHIFT_DECREMENT);
+    HAL_Delay(1);
+
+    lcd->display_control = LCD_Display_On;
+    LCD_Send_Command(lcd, LCD_Cmd_DisplayOnOff | lcd->display_control);
+    HAL_Delay(1);
 }
 
-void LCD_Send_Command(LCD_t *lcd, uint8_t cmd){
-	uint8_t data_u = cmd & 0xF0;
-	uint8_t data_l = (cmd << 4) & 0xF0;
 
-	uint8_t data_t[4];
-
-	data_t[0] = (data_u) | 0x04 | (lcd->backlight ? 0x08 : 0x00); // EN = 1
-	data_t[1] = (data_u) | (lcd->backlight ? 0x08 : 0x00); 		  // EN = 0
-	data_t[2] = (data_l) | 0x04 | (lcd->backlight ? 0x08 : 0x00); // EN = 1;
-	data_t[3] = (data_l) | (lcd->backlight ? 0x08 : 0x00); 		  // EN = 1;
-
-	HAL_I2C_Master_Transmit(lcd->hi2c, lcd->i2c_addr, data_t, 4, 100);
-	HAL_Delay(1);
+void LCD_Clear(LCD_t *lcd)
+{
+    LCD_Send_Command(lcd, LCD_Cmd_ClearDisplay);
+    HAL_Delay(2);
 }
 
-void LCD_Clear(LCD_t *lcd){
-	LCD_Send_Command(lcd, LCD_Cmd_ClearDisplay);
-	HAL_Delay(2);
+
+void LCD_Send_Command(LCD_t *lcd, uint8_t cmd)
+{
+    HAL_GPIO_WritePin(LCD_RS_PORT, LCD_RS_PIN, GPIO_PIN_RESET);  // RS=0 komut
+
+    LCD_Write4bit(cmd & 0xF0);
+
+    LCD_Write4bit((cmd << 4) & 0xF0);
 }
+
 
 void LCD_Set_Cursor(LCD_t *lcd, uint8_t row, uint8_t col){
 	const uint8_t row_offset[] = {0x00, 0x40};
@@ -73,19 +88,11 @@ void LCD_Set_Cursor(LCD_t *lcd, uint8_t row, uint8_t col){
 }
 
 void LCD_Send_Data(LCD_t *lcd, uint8_t data){
-    uint8_t data_u = data & 0xF0;
-    uint8_t data_l = (data << 4) & 0xF0;
+    HAL_GPIO_WritePin(LCD_RS_PORT, LCD_RS_PIN, GPIO_PIN_SET);    // RS=1 data
 
-    uint8_t data_t[4];
+    LCD_Write4bit(data & 0xF0);
 
-    // RS = 1 (data), EN = 1, BACKLIGHT
-    data_t[0] = data_u | 0x05 | (lcd->backlight ? 0x08 : 0x00);  // EN=1, RS=1
-    data_t[1] = data_u | 0x01 | (lcd->backlight ? 0x08 : 0x00);  // EN=0, RS=1
-    data_t[2] = data_l | 0x05 | (lcd->backlight ? 0x08 : 0x00);  // EN=1, RS=1
-    data_t[3] = data_l | 0x01 | (lcd->backlight ? 0x08 : 0x00);  // EN=0, RS=1
-
-    HAL_I2C_Master_Transmit(lcd->hi2c, lcd->i2c_addr, data_t, 4, 100);
-    HAL_Delay(1);
+    LCD_Write4bit((data << 4) & 0xF0);
 }
 
 void LCD_Send_Char(LCD_t *lcd, char ch){
@@ -102,17 +109,6 @@ void LCD_Home(LCD_t *lcd){
     HAL_Delay(2);
 }
 
-void LCD_Backlight_On(LCD_t *lcd){
-    lcd->backlight = true;
-    uint8_t data = 0x08;  // sadece backlight biti
-    HAL_I2C_Master_Transmit(lcd->hi2c, lcd->i2c_addr, &data, 1, 100);
-}
-
-void LCD_Backlight_Off(LCD_t *lcd){
-    lcd->backlight = false;
-    uint8_t data = 0x00;
-    HAL_I2C_Master_Transmit(lcd->hi2c, lcd->i2c_addr, &data, 1, 100);
-}
 
 void LCD_Cursor_Show(LCD_t *lcd){
     lcd->display_control |= LCD_Cursor_On;
@@ -152,16 +148,4 @@ void LCD_Scroll_Text(LCD_t *lcd, const char *text, uint8_t row, uint8_t delayMs)
         LCD_Send_String(lcd, buf);
         HAL_Delay(delayMs);
     }
-}
-
-void LCD_Send_InitNibble(LCD_t *lcd, uint8_t nibble){
-	uint8_t data_t[2];
-	uint8_t data_u = nibble & 0xF0;
-
-	// EN = 1, RS = 0, RW = 0, BACKLIGHT
-	data_t[0] = data_u | 0x04 | (lcd->backlight ? 0x08 : 0x00);
-	// EN = 0
-	data_t[1] = data_u | (lcd->backlight ? 0x08 : 0x00);
-
-	HAL_I2C_Master_Transmit(lcd->hi2c, lcd->i2c_addr, data_t, 2, 100);
 }

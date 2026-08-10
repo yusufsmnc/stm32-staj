@@ -13,7 +13,24 @@
 #include "stdarg.h"
 #include "string.h"
 
-#define LCD_I2C_DEVICE_ADDRESS		0x4E
+/* ************* PINs ************* */
+#define LCD_RS_PORT     GPIOB
+#define LCD_RS_PIN      GPIO_PIN_0
+
+#define LCD_EN_PORT     GPIOB
+#define LCD_EN_PIN      GPIO_PIN_1
+
+#define LCD_D4_PORT     GPIOB
+#define LCD_D4_PIN      GPIO_PIN_4
+
+#define LCD_D5_PORT     GPIOB
+#define LCD_D5_PIN      GPIO_PIN_5
+
+#define LCD_D6_PORT     GPIOB
+#define LCD_D6_PIN      GPIO_PIN_6
+
+#define LCD_D7_PORT     GPIOB
+#define LCD_D7_PIN      GPIO_PIN_7
 
 // Function Set Flags
 #define LCD_8BIT_MODE 				0x10
@@ -49,14 +66,11 @@ typedef enum {
 }LCD_Display_Control_Flags;
 
 /* ************* LCD Structure ************* */
-typedef struct{
-	I2C_HandleTypeDef 	*hi2c;
-	uint8_t				i2c_addr;
-	uint8_t				columns;
-	uint8_t				rows;
-	bool				backlight;
-	uint8_t				display_control;
-}LCD_t;
+typedef struct {
+    uint8_t  columns;
+    uint8_t  rows;
+    uint8_t  display_control;
+} LCD_t;
 
 /* ************* LCD APIs Functions ************* */
 void LCD_Initialization(LCD_t *lcd);
@@ -67,12 +81,9 @@ void LCD_Send_Char(LCD_t *lcd, char ch);
 void LCD_Send_String(LCD_t *lcd, const char *str);
 void LCD_Send_Command(LCD_t *lcd, uint8_t cmd);
 void LCD_Send_Data(LCD_t *lcd, uint8_t data);
-void LCD_Backlight_On(LCD_t *lcd);
-void LCD_Backlight_Off(LCD_t *lcd);
 void LCD_Cursor_Show(LCD_t *lcd);
 void LCD_Cursor_Hide(LCD_t *lcd);
 void LCD_Printf(LCD_t *lcd, const char *format, ...);
 void LCD_Scroll_Text(LCD_t *lcd, const char *text, uint8_t row, uint8_t delayMs);
-void LCD_Send_InitNibble(LCD_t *lcd, uint8_t nibble);
 
 #endif /* INC_LCD_2X16_DRIVER_H_ */

@@ -11,6 +11,7 @@
 #include "main.h"
 #include "stdbool.h"
 #include "stdarg.h"
+#include "string.h"
 
 #define LCD_I2C_DEVICE_ADDRESS		0x4E
 
@@ -72,5 +73,6 @@ void LCD_Cursor_Show(LCD_t *lcd);
 void LCD_Cursor_Hide(LCD_t *lcd);
 void LCD_Printf(LCD_t *lcd, const char *format, ...);
 void LCD_Scroll_Text(LCD_t *lcd, const char *text, uint8_t row, uint8_t delayMs);
+void LCD_Send_InitNibble(LCD_t *lcd, uint8_t nibble);
 
 #endif /* INC_LCD_2X16_DRIVER_H_ */

@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 
 #include "power_meter.h"
+#include "lcd_2x16_driver.h"
 #include "math.h"
 #include "string.h"
 #include "stdio.h"
@@ -71,6 +72,15 @@ uint16_t adcBuf[ADC_BUFFER_BOYUTU];
 uint8_t faz_idx = 1; 				// baslangic 30 derece
 
 volatile bool adcHazir = false;
+
+LCD_t lcd = {
+		.hi2c 		= &hi2c1,
+		.i2c_addr 	= LCD_I2C_DEVICE_ADDRESS,
+		.rows		= 2,
+		.columns    = 16,
+		.backlight	= true
+};
+
 PowerMeter_t meter;
 
 float faz_listesi[] = {0.0f, 30.0f, 60.0f, -30.0f};
@@ -163,6 +173,15 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   PowerMeter_Init(&meter, PM_FAZ_ENDUKTIF_30);
+
+  LCD_Initialization(&lcd);
+  LCD_Clear(&lcd);
+  LCD_Set_Cursor(&lcd, 0, 0);
+  LCD_Send_String(&lcd, " PowerMeter v1  ");
+  LCD_Set_Cursor(&lcd, 1, 0);
+  LCD_Send_String(&lcd, "Baslatiliyor... ");
+  HAL_Delay(1500);
+
   Generate_Waves(meter.faz_aci);
 
   HAL_TIM_Base_Start(&htim6);
@@ -175,6 +194,7 @@ int main(void)
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)wave_V, WAVE_SAMPLES, DAC_ALIGN_12B_R);
 
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuf, ADC_BUFFER_BOYUTU);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */

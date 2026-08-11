@@ -10,9 +10,9 @@
 static void LCD_Pulse(void)
 {
     HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_SET);
-    for (volatile int i = 0; i < 200; i++);   // >1μs
+    HAL_Delay(1);
     HAL_GPIO_WritePin(LCD_EN_PORT, LCD_EN_PIN, GPIO_PIN_RESET);
-    for (volatile int i = 0; i < 200; i++);   // >37μs
+    HAL_Delay(1);
 }
 
 static void LCD_Write4bit(uint8_t nibble)
@@ -73,6 +73,8 @@ void LCD_Send_Command(LCD_t *lcd, uint8_t cmd)
     LCD_Write4bit(cmd & 0xF0);
 
     LCD_Write4bit((cmd << 4) & 0xF0);
+
+    HAL_Delay(1);
 }
 
 
@@ -93,6 +95,7 @@ void LCD_Send_Data(LCD_t *lcd, uint8_t data){
     LCD_Write4bit(data & 0xF0);
 
     LCD_Write4bit((data << 4) & 0xF0);
+    HAL_Delay(1);
 }
 
 void LCD_Send_Char(LCD_t *lcd, char ch){
@@ -118,6 +121,23 @@ void LCD_Cursor_Show(LCD_t *lcd){
 void LCD_Cursor_Hide(LCD_t *lcd){
     lcd->display_control &= ~LCD_Cursor_On;
     LCD_Send_Command(lcd, LCD_Cmd_DisplayOnOff | lcd->display_control);
+}
+
+void LCD_Print_Padded(LCD_t *lcd, const char *format, ...)
+{
+    char buf[17] = "                ";  // 16 boşluk + null
+    char tmp[33];
+
+    va_list args;
+    va_start(args, format);
+    vsnprintf(tmp, sizeof(tmp), format, args);
+    va_end(args);
+
+    uint8_t len = strlen(tmp);
+    if(len > 16) len = 16;
+    memcpy(buf, tmp, len);
+
+    LCD_Send_String(lcd, buf);
 }
 
 void LCD_Printf(LCD_t *lcd, const char *format, ...){

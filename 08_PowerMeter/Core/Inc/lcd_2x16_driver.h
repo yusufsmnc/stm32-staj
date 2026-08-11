@@ -83,6 +83,7 @@ void LCD_Send_Command(LCD_t *lcd, uint8_t cmd);
 void LCD_Send_Data(LCD_t *lcd, uint8_t data);
 void LCD_Cursor_Show(LCD_t *lcd);
 void LCD_Cursor_Hide(LCD_t *lcd);
+void LCD_Print_Padded(LCD_t *lcd, const char *format, ...);
 void LCD_Printf(LCD_t *lcd, const char *format, ...);
 void LCD_Scroll_Text(LCD_t *lcd, const char *text, uint8_t row, uint8_t delayMs);
 

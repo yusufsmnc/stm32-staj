@@ -191,7 +191,6 @@ int main(void)
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)wave_V, WAVE_SAMPLES, DAC_ALIGN_12B_R);
 
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuf, ADC_BUFFER_BOYUTU);
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -201,6 +200,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
 	  if (adcHazir) {
 	      adcHazir = false;
 	      PowerMeter_Calculate(&meter, adcBuf);
@@ -211,17 +211,14 @@ int main(void)
 	  if (HAL_GetTick() - lastLCD >= 500) {
 	      lastLCD = HAL_GetTick();
 
-	      /* Satır 1: Yük tipi */
-	      LCD_Set_Cursor(&lcd, 0, 0);
-	      if      (meter.faz_aci ==  0.0f) LCD_Send_String(&lcd, "Yuk: Rezistif   ");
-	      else if (meter.faz_aci == 30.0f) LCD_Send_String(&lcd, "Yuk: Enduktif   ");
-	      else if (meter.faz_aci == 60.0f) LCD_Send_String(&lcd, "Yuk: Motor      ");
-	      else                             LCD_Send_String(&lcd, "Yuk: Kapasitif  ");
 
-	      /* Satır 2: Enerji */
+	      LCD_Set_Cursor(&lcd, 0, 0);
+	      LCD_Print_Padded(&lcd, "Yuk: %s",meter.faz_aci ==  0.0f ? "Rezistif" :meter.faz_aci == 30.0f ? "Enduktif" :meter.faz_aci == 60.0f ? "Motor"    : "Kapasitif");
+
 	      LCD_Set_Cursor(&lcd, 1, 0);
-	      LCD_Printf(&lcd, "E:%d.%04d Wh", (int)meter.energy_Wh, (int)((meter.energy_Wh - (int)meter.energy_Wh) * 10000.0f));
+	      LCD_Print_Padded(&lcd, "E:%d.%04d Wh", (int)meter.energy_Wh, (int)((meter.energy_Wh - (int)meter.energy_Wh) * 10000.0f));
 	  }
+
   }
   /* USER CODE END 3 */
 }
@@ -530,8 +527,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_5
-                          |GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LCD_RS_Pin|LCD_EN_Pin|LCD_D4_Pin|LCD_D5_Pin
+                          |LCD_D6_Pin|LCD_D7_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : PA0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
@@ -539,10 +536,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB0 PB1 PB4 PB5
-                           PB6 PB7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_5
-                          |GPIO_PIN_6|GPIO_PIN_7;
+  /*Configure GPIO pins : LCD_RS_Pin LCD_EN_Pin LCD_D4_Pin LCD_D5_Pin
+                           LCD_D6_Pin LCD_D7_Pin */
+  GPIO_InitStruct.Pin = LCD_RS_Pin|LCD_EN_Pin|LCD_D4_Pin|LCD_D5_Pin
+                          |LCD_D6_Pin|LCD_D7_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

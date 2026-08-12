@@ -39,13 +39,13 @@ extern const char* LOAD_NAME_TABLE[LOAD_COUNT];
 /************** System State Machine Struct **************/
 
 typedef struct{
-	SysState_t current         ;	  // mevcut state
-	SysState_t previous        ;      // önceki state
-	uint32_t   stateEnterTick  ;	  // state'e giriş zamanı
-	uint32_t   lastTransmitTick;	  // son UART gönderimi
-	uint32_t   lastLcdTick	   ;	  // son LCD güncellemesi
-	LoadType_t loadIndex       ;	  // aktif yük tipi
-	bool	   buttonEvent	   ;	  // buton basış olayı
+	SysState_t current;	  			// mevcut state
+	SysState_t previous;      		// önceki state
+	uint32_t   stateEnterTick;	    // state'e giriş zamanı
+	LoadType_t loadIndex;	  		// aktif yük tipi
+	bool	   buttonEvent;	        // buton basış olayı
+	volatile bool lcdUpdateFlag;
+	volatile bool uartTransmitFlag;
 }SystemSM_t;
 
 

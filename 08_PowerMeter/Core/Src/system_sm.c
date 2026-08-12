@@ -44,10 +44,10 @@ void SystemSM_Init(SystemSM_t *sm){
 	sm->current			 = SYS_STATE_INIT;
 	sm->previous		 = SYS_STATE_INIT;
 	sm->stateEnterTick   = HAL_GetTick();
-	sm->lastTransmitTick = HAL_GetTick();
-	sm->lastLcdTick		 = HAL_GetTick();
 	sm->loadIndex		 = LOAD_INDUCTIVE_30;  // başlangıç: Enduktif
 	sm->buttonEvent		 = false;
+	sm->lcdUpdateFlag	 = false;
+	sm->uartTransmitFlag = false;
 }
 
 /************** Buton Olayı **************/
@@ -86,8 +86,8 @@ void SystemSM_Run(SystemSM_t *sm, PowerMeter_t *meter,
 		}
 
 		// LCD guncelle - her 500ms
-		if(HAL_GetTick() - sm->lastLcdTick >= 500){
-			sm->lastLcdTick = HAL_GetTick();
+		if(sm->lcdUpdateFlag){
+			sm->lcdUpdateFlag = false;
 
 			LCD_Set_Cursor(lcd, 0, 0);
 		    LCD_Print_Padded(lcd, "P:%d.%04d W",(int)meter->P_act,
@@ -98,8 +98,10 @@ void SystemSM_Run(SystemSM_t *sm, PowerMeter_t *meter,
 		}
 
 		// UART gonder - her 1 sn
-		if(HAL_GetTick() - sm->lastTransmitTick >= 1000)
-			SystemSM_Transition(sm, SYS_STATE_TRANSMIT);
+		if(sm->uartTransmitFlag){
+	        sm->uartTransmitFlag = false;
+	        SystemSM_Transition(sm, SYS_STATE_TRANSMIT);
+		}
 
 		// Buton basildi - yuk degistir
 		if(sm->buttonEvent){
@@ -110,7 +112,6 @@ void SystemSM_Run(SystemSM_t *sm, PowerMeter_t *meter,
 
 	// Transmit
 	case SYS_STATE_TRANSMIT:
-		sm->lastTransmitTick = HAL_GetTick();
 		PowerMeter_Display(meter, huart);
 		SystemSM_Transition(sm, SYS_STATE_MEASURE);
 		break;

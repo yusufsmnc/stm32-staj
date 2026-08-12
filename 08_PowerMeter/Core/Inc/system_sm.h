@@ -19,7 +19,7 @@ typedef enum{
 	SYS_STATE_INIT		= 0,
 	SYS_STATE_MEASURE      ,
 	SYS_STATE_TRANSMIT     ,
-	SYS_STATE_LOAD_CHANGE  ,
+	SYS_STATE_LOAD_CHANGE
 }SysState_t;
 
 /************** Yük Tipleri **************/
@@ -29,7 +29,7 @@ typedef enum{
 	LOAD_INDUCTIVE_30	   ,		  //  30 derece, PF = 0.87
 	LOAD_INDUCTIVE_60	   ,		  //  60 derece, PF = 0.50
 	LOAD_CAPACITIVE		   ,		  // -30 derece, PF = 0.87
-	LOAD_COUNT			   ,
+	LOAD_COUNT
 }LoadType_t;
 
 /************** System State Machine Struct **************/

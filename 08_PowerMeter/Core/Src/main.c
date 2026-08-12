@@ -24,6 +24,7 @@
 
 #include "power_meter.h"
 #include "lcd_2x16_driver.h"
+#include "system_sm.h"
 #include "math.h"
 #include "string.h"
 #include "stdio.h"
@@ -63,24 +64,17 @@ TIM_HandleTypeDef htim6;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
-volatile uint8_t found = 0;
-
 uint16_t wave_V[WAVE_SAMPLES];    	// gerilim sinüsü
 uint16_t wave_I[WAVE_SAMPLES];    	// akım sinüsü (faz kaymalı)
 uint16_t adcBuf[ADC_BUFFER_BOYUTU];
-uint8_t faz_idx = 1; 				// baslangic 30 derece
-
 volatile bool adcHazir = false;
-
 LCD_t lcd = {
 		.rows		= 2,
 		.columns    = 16,
 		.display_control = 0
 };
-
 PowerMeter_t meter;
-
-float faz_listesi[] = {0.0f, 30.0f, 60.0f, -30.0f};
+SystemSM_t sysSM;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -121,10 +115,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
         if (HAL_GetTick() - lastTick < 300)
         	return;
         lastTick = HAL_GetTick();
-
-        faz_idx = (faz_idx + 1) % 4;
-        PowerMeter_SetFaz(&meter, faz_listesi[faz_idx]);
-        Generate_Waves(faz_listesi[faz_idx]);
+        SystemSM_ButtonEvent(&sysSM);
     }
 }
 
@@ -168,28 +159,22 @@ int main(void)
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 
-
-  PowerMeter_Init(&meter, PM_FAZ_ENDUKTIF_30);
-
+  // 1-) LCD Init
   LCD_Initialization(&lcd);
   LCD_Clear(&lcd);
-  LCD_Set_Cursor(&lcd, 0, 0);
-  LCD_Send_String(&lcd, " PowerMeter v1  ");
-  LCD_Set_Cursor(&lcd, 1, 0);
-  LCD_Send_String(&lcd, "Baslatiliyor... ");
-  HAL_Delay(1500);
+  HAL_Delay(10);
 
-  Generate_Waves(meter.faz_aci);
+  // 2-) PowerMeter Init
+  PowerMeter_Init(&meter, PM_FAZ_ENDUKTIF_30);
 
+  // 3-) State Machine Init
+  SystemSM_Init(&sysSM);
+
+  // 4-) DAC/ADC/TIM/DMA
   HAL_TIM_Base_Start(&htim6);
   HAL_TIM_Base_Start(&htim3);
-
-  // Önce CH2
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_2, (uint32_t*)wave_I, WAVE_SAMPLES, DAC_ALIGN_12B_R);
-
-  // Sonra CH1
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)wave_V, WAVE_SAMPLES, DAC_ALIGN_12B_R);
-
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcBuf, ADC_BUFFER_BOYUTU);
   /* USER CODE END 2 */
 
@@ -200,24 +185,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-	  if (adcHazir) {
-	      adcHazir = false;
-	      PowerMeter_Calculate(&meter, adcBuf);
-	      PowerMeter_Display(&meter, &huart3);
-	  }
-
-	  static uint32_t lastLCD = 0;
-	  if (HAL_GetTick() - lastLCD >= 500) {
-	      lastLCD = HAL_GetTick();
-
-
-	      LCD_Set_Cursor(&lcd, 0, 0);
-	      LCD_Print_Padded(&lcd, "Yuk: %s",meter.faz_aci ==  0.0f ? "Rezistif" :meter.faz_aci == 30.0f ? "Enduktif" :meter.faz_aci == 60.0f ? "Motor"    : "Kapasitif");
-
-	      LCD_Set_Cursor(&lcd, 1, 0);
-	      LCD_Print_Padded(&lcd, "E:%d.%04d Wh", (int)meter.energy_Wh, (int)((meter.energy_Wh - (int)meter.energy_Wh) * 10000.0f));
-	  }
+	  SystemSM_Run(&sysSM, &meter, &lcd, &huart3, adcBuf, &adcHazir);
 
   }
   /* USER CODE END 3 */

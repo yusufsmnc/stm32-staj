@@ -9,6 +9,23 @@
 #include "stdio.h"
 #include "string.h"
 
+/************** Faz Açısı Tablosu **************/
+
+const float LOAD_FAZ_TABLE[LOAD_COUNT] = {
+		 0.0f ,  	// RESISTIVE
+		30.0f ,		// INDUCTIVE_30
+		60.0f ,		// INDUCTIVE_60
+	   -30.0f 		// CAPACITIVE
+};
+
+const char* LOAD_NAME_TABLE[LOAD_COUNT] = {
+		"Rezistif",
+		"Enduktif",
+		"Motor   ",
+		"Kapasitif"
+};
+
+
 /************** Dışarıdan Erişilecek Fonksiyonlar **************/
 
 extern void Generate_Waves(float faz_aci);
@@ -73,8 +90,8 @@ void SystemSM_Run(SystemSM_t *sm, PowerMeter_t *meter,
 			sm->lastLcdTick = HAL_GetTick();
 
 			LCD_Set_Cursor(lcd, 0, 0);
-			LCD_Print_Padded(lcd, "Yuk: %s", LOAD_NAME_TABLE[sm->loadIndex]);
-
+		    LCD_Print_Padded(lcd, "P:%d.%04d W",(int)meter->P_act,
+		            (int)((meter->P_act - (int)meter->P_act) * 10000.0f));
 			LCD_Set_Cursor(lcd, 1, 0);
 			LCD_Print_Padded(lcd, "E:%d.%04d Wh", (int)meter->energy_Wh,
 					(int)((meter->energy_Wh - (int)meter->energy_Wh) * 10000.0f));
@@ -107,12 +124,13 @@ void SystemSM_Run(SystemSM_t *sm, PowerMeter_t *meter,
 		Generate_Waves(LOAD_FAZ_TABLE[sm->loadIndex]);
 
 		// LCD'de yuk degisimi göster
-		LCD_Set_Cursor(lcd, 0, 0);
-		LCD_Print_Padded(lcd, "Yuk Degisti:");
-		LCD_Set_Cursor(lcd, 1, 0);
-		LCD_Print_Padded(lcd, "%s PF:%.2f",
-				LOAD_NAME_TABLE[sm->loadIndex],
-				(double)LOAD_FAZ_TABLE[sm->loadIndex]);
+	    LCD_Set_Cursor(lcd, 0, 0);
+	    LCD_Print_Padded(lcd, "Yuk Degisti!");
+
+	    LCD_Set_Cursor(lcd, 1, 0);
+	    LCD_Print_Padded(lcd, "%s %d deg",
+	        LOAD_NAME_TABLE[sm->loadIndex],
+	        (int)LOAD_FAZ_TABLE[sm->loadIndex]);
 		HAL_Delay(1000);
 
 		SystemSM_Transition(sm, SYS_STATE_MEASURE);

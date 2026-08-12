@@ -13,6 +13,7 @@
 #include "power_meter.h"
 #include "lcd_2x16_driver.h"
 
+
 /************** State Tanımları **************/
 
 typedef enum{
@@ -32,6 +33,9 @@ typedef enum{
 	LOAD_COUNT
 }LoadType_t;
 
+extern const float LOAD_FAZ_TABLE[LOAD_COUNT];
+extern const char* LOAD_NAME_TABLE[LOAD_COUNT];
+
 /************** System State Machine Struct **************/
 
 typedef struct{
@@ -44,21 +48,6 @@ typedef struct{
 	bool	   buttonEvent	   ;	  // buton basış olayı
 }SystemSM_t;
 
-/************** Faz Açısı Tablosu **************/
-
-static const float LOAD_FAZ_TABLE[LOAD_COUNT] = {
-		 0.0f ,  	// RESISTIVE
-		30.0f ,		// INDUCTIVE_30
-		60.0f ,		// INDUCTIVE_60
-	   -30.0f 		// CAPACITIVE
-};
-
-static const char* LOAD_NAME_TABLE[LOAD_COUNT] = {
-		"Rezistif",
-		"Enduktif",
-		"Motor   ",
-		"Kapasitif"
-};
 
 /************** Fonksiyon Prototipleri **************/
 

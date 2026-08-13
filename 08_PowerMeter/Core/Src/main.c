@@ -120,14 +120,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    if (GPIO_Pin == GPIO_PIN_0)
-    {
-        // Debounce
-        static uint32_t lastTick = 0;
-        if (HAL_GetTick() - lastTick < 300)
-        	return;
-        lastTick = HAL_GetTick();
-        // SystemSM_ButtonEvent(&sysSM);
+    if (GPIO_Pin == GPIO_PIN_0){
+    	if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_SET)
+    		sysSM.btnPressTime = HAL_GetTick();
+    	else{
+    		uint32_t duration = HAL_GetTick() - sysSM.btnPressTime;
+
+    		// debounce
+    		if(duration < 50)
+    			return;
+    		if(duration < 500)
+    			SystemSM_ButtonEvent(&sysSM, 0);
+    		else
+    			SystemSM_ButtonEvent(&sysSM, 1);
+    	}
     }
 }
 

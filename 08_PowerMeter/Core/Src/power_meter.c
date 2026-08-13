@@ -97,11 +97,11 @@ void PowerMeter_SetFaz(PowerMeter_t *pm, float faz_aci){
 }
 
 
-void PowerMeter_Display(PowerMeter_t *pm, UART_HandleTypeDef *huart){
+void PowerMeter_Display(PowerMeter_t *pm, UART_HandleTypeDef *huart, const char *loadName){
     char buf[200];
 
     int len = snprintf(buf, sizeof(buf),
-        "%.4f,%.4f,%.2f,%.4f,%.4f,%.4f,%.4f,%.4f\r\n",
+        "%.4f,%.4f,%.2f,%.4f,%.4f,%.4f,%.4f,%.4f,%s\r\n",
         pm->Vrms,
         pm->Irms,
         pm->freq,
@@ -109,7 +109,8 @@ void PowerMeter_Display(PowerMeter_t *pm, UART_HandleTypeDef *huart){
         pm->P_react,
         pm->P_app,
         pm->PF,
-        pm->energy_Wh);
+        pm->energy_Wh,
+		loadName);
 
     HAL_UART_Transmit(huart, (uint8_t*)buf, len, 100);
 }

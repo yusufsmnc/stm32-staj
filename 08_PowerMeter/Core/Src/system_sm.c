@@ -111,7 +111,7 @@ void SystemSM_Run(SystemSM_t *sm, PowerMeter_t *meter,
 
 	// Transmit
 	case SYS_STATE_TRANSMIT:
-		PowerMeter_Display(meter, huart);
+		PowerMeter_Display(meter, huart, LOAD_NAME_TABLE[sm->loadIndex]);
 		SystemSM_Transition(sm, SYS_STATE_MEASURE);
 		break;
 	// Load_Change

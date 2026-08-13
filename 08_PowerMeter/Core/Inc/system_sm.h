@@ -1,4 +1,4 @@
-/*
+	/*
  * system_sm.h
  *
  *  Created on: Aug 12, 2026
@@ -12,6 +12,8 @@
 #include "stdbool.h"
 #include "power_meter.h"
 #include "lcd_2x16_driver.h"
+#include "display_sm.h"
+#include "load_types.h"
 
 
 /************** State Tanımları **************/
@@ -25,14 +27,6 @@ typedef enum{
 
 /************** Yük Tipleri **************/
 
-typedef enum{
-	LOAD_RESISTIVE      = 0,		  //  0  derece, PF = 1.00
-	LOAD_INDUCTIVE_30	   ,		  //  30 derece, PF = 0.87
-	LOAD_INDUCTIVE_60	   ,		  //  60 derece, PF = 0.50
-	LOAD_CAPACITIVE		   ,		  // -30 derece, PF = 0.87
-	LOAD_COUNT
-}LoadType_t;
-
 extern const float LOAD_FAZ_TABLE[LOAD_COUNT];
 extern const char* LOAD_NAME_TABLE[LOAD_COUNT];
 
@@ -44,8 +38,10 @@ typedef struct{
 	uint32_t   stateEnterTick;	    // state'e giriş zamanı
 	LoadType_t loadIndex;	  		// aktif yük tipi
 	bool	   buttonEvent;	        // buton basış olayı
-	volatile bool lcdUpdateFlag;
-	volatile bool uartTransmitFlag;
+	volatile bool lcdUpdateFlag;	// LCD guncelleme flag
+	volatile bool uartTransmitFlag;	// UART transfer flag
+	DisplaySM_t displaySM;			// Display'in kendi icindeki state machine
+	uint32_t 	btnPressTime;		// kısa/uzun basıs algılama
 }SystemSM_t;
 
 
@@ -55,6 +51,6 @@ void SystemSM_Init(SystemSM_t *sm);
 void SystemSM_Run(SystemSM_t *sm, PowerMeter_t *meter,
 				  LCD_t *lcd, UART_HandleTypeDef *huart,
 				  uint16_t *adcbuf, volatile bool *adcHazir);
-void SystemSM_ButtonEvent(SystemSM_t *sm);
+void SystemSM_ButtonEvent(SystemSM_t *sm, uint8_t isLong);
 
 #endif /* INC_SYSTEM_SM_H_ */

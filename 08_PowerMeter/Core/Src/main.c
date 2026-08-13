@@ -127,7 +127,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
         if (HAL_GetTick() - lastTick < 300)
         	return;
         lastTick = HAL_GetTick();
-        SystemSM_ButtonEvent(&sysSM);
+        // SystemSM_ButtonEvent(&sysSM);
     }
 }
 
@@ -607,7 +607,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : PA0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 

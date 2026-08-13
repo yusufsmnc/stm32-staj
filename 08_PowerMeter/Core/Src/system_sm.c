@@ -48,12 +48,17 @@ void SystemSM_Init(SystemSM_t *sm){
 	sm->buttonEvent		 = false;
 	sm->lcdUpdateFlag	 = false;
 	sm->uartTransmitFlag = false;
+	sm->btnPressTime	 = 0;
+	DisplaySM_Init(&sm->displaySM);
 }
 
 /************** Buton Olayı **************/
 
-void SystemSM_ButtonEvent(SystemSM_t *sm){
-	sm->buttonEvent = true;
+void SystemSM_ButtonEvent(SystemSM_t *sm, uint8_t isLong){
+	if(isLong)
+		sm->buttonEvent = true;          // uzun -> yük değiştir
+	else
+		DisplaySM_Next(&sm->displaySM);  // kısa -> ekran değiştir
 }
 
 /************** Ana döngü **************/
@@ -88,13 +93,7 @@ void SystemSM_Run(SystemSM_t *sm, PowerMeter_t *meter,
 		// LCD guncelle - her 500ms
 		if(sm->lcdUpdateFlag){
 			sm->lcdUpdateFlag = false;
-
-			LCD_Set_Cursor(lcd, 0, 0);
-		    LCD_Print_Padded(lcd, "P:%d.%04d W",(int)meter->P_act,
-		            (int)((meter->P_act - (int)meter->P_act) * 10000.0f));
-			LCD_Set_Cursor(lcd, 1, 0);
-			LCD_Print_Padded(lcd, "E:%d.%04d Wh", (int)meter->energy_Wh,
-					(int)((meter->energy_Wh - (int)meter->energy_Wh) * 10000.0f));
+			DisplaySM_Update(&sm->displaySM, meter, lcd, sm->loadIndex);
 		}
 
 		// UART gonder - her 1 sn

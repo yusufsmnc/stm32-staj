@@ -112,6 +112,13 @@ void SystemSM_Run(SystemSM_t *sm, PowerMeter_t *meter,
 	// Transmit
 	case SYS_STATE_TRANSMIT:
 		PowerMeter_Display(meter, huart, LOAD_NAME_TABLE[sm->loadIndex]);
+
+		// Her 10 saniyede bir flash'a kaydet
+		static uint8_t saveCounter = 0;
+		if(++saveCounter >= 10){
+			saveCounter = 0;
+			Flash_SaveEnergy(meter->energy_Wh);
+		}
 		SystemSM_Transition(sm, SYS_STATE_MEASURE);
 		break;
 	// Load_Change

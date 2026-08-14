@@ -29,6 +29,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "stdbool.h"
+#include "flash_storage.h"
 
 /* USER CODE END Includes */
 
@@ -187,10 +188,15 @@ int main(void)
   // 2-) PowerMeter Init
   PowerMeter_Init(&meter, PM_FAZ_ENDUKTIF_30);
 
-  // 3-) State Machine Init
+  // 3-) Flash'dan enerjiyi oku
+  float savedEnergy = 0.0f;
+  if (Flash_LoadEnergy(&savedEnergy))
+      meter.energy_Wh = savedEnergy;
+
+  // 4-) State Machine Init
   SystemSM_Init(&sysSM);
 
-  // 4-) DAC/ADC/TIM/DMA
+  // 5-) DAC/ADC/TIM/DMA
   HAL_TIM_Base_Start(&htim6);
   HAL_TIM_Base_Start(&htim3);
   HAL_TIM_Base_Start_IT(&htim2);

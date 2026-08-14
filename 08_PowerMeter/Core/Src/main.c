@@ -188,6 +188,7 @@ int main(void)
   // 2-) PowerMeter Init
   PowerMeter_Init(&meter, PM_FAZ_ENDUKTIF_30);
 
+
   // 3-) Flash'dan enerjiyi oku
   float savedEnergy = 0.0f;
   if (Flash_LoadEnergy(&savedEnergy))

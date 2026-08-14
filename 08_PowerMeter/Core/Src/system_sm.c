@@ -8,6 +8,7 @@
 #include "system_sm.h"
 #include "stdio.h"
 #include "string.h"
+#include "flash_storage.h"
 
 /************** Faz Açısı Tablosu **************/
 

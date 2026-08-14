@@ -14,7 +14,7 @@
 
 /************** Flash Sabit Tanımları **************/
 
-#define FLASH_STORAGE_ADDR		0x08E0000UL  // Sektor 11
+#define FLASH_STORAGE_ADDR		0x080E0000UL  // Sektor 11
 #define FLASH_MAGIC_NUMBER		0xDEADBEEFUL // Gecerlilk Kontrolu
 
 /************** Flash Veri Yapısı **************/

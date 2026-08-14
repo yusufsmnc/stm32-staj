@@ -6,6 +6,7 @@
  */
 
 #include "flash_storage.h"
+#include "string.h"
 
 /************** Checksum Hesapla **************/
 
@@ -52,10 +53,12 @@ static uint32_t Flash_CalcChecksum(float energy_Wh){
  */
 
 bool Flash_IsValid(void){
-	FlashData_t *data = (FlashData_t*)FLASH_STORAGE_ADDR;
-	if(data->magic != FLASH_MAGIC_NUMBER)
-		return false;
-	return(data->checksum == Flash_CalcChecksum(data->energy_Wh));
+    FlashData_t *data = (FlashData_t *)FLASH_STORAGE_ADDR;
+
+    if (data->magic != FLASH_MAGIC_NUMBER)
+        return false;
+
+    return (data->checksum == Flash_CalcChecksum(data->energy_Wh));
 }
 
 /************** Flash'tan Enerjiyi Oku **************/
@@ -74,11 +77,12 @@ bool Flash_IsValid(void){
  */
 
 bool Flash_LoadEnergy(float *energy_Wh){
-	if(!Flash_IsValid())
-		return false;
-	FlashData_t *data = (FlashData_t*)FLASH_STORAGE_ADDR;
-	*energy_Wh = data->energy_Wh;
-	return true;
+    if (!Flash_IsValid())
+        return false;
+
+    FlashData_t *data = (FlashData_t *)FLASH_STORAGE_ADDR;
+    *energy_Wh = data->energy_Wh;
+    return true;
 }
 
 /************** Flash Sektorunu Erase'le **************/

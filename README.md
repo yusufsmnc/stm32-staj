@@ -17,7 +17,7 @@ Bu depo, Erciyes Üniversitesi Bilgisayar Mühendisliği Bölümü staj sürecin
 
 ## Projeler
 
-### 01 — Yürüyen Işık, Kesme ve Zamanlayıcı
+## 01 - Yürüyen Işık, Kesme ve Zamanlayıcı
 Kart üzerindeki dört LED'in (PD12–PD15) sırayla ileri ve geri yönde yakılması. HAL_Delay ile başlayan uygulama, TIM2 zamanlayıcı kesmesi tabanlı mimariye dönüştürüldü. Kullanıcı butonu (PA0) EXTI kesmesiyle LED hızını değiştirmekte, HAL_GetTick tabanlı debounce mekanizması kontak titremesini gidermektedir.
 
 **Kullanılan Çevre Birimleri:** GPIO, TIM2, EXTI, NVIC

@@ -24,34 +24,35 @@ Kart üzerindeki dört LED'in (PD12–PD15) sırayla ileri ve geri yönde yakıl
 
 ---
 
-### 02 — SPI Haberleşmesi ve LIS3DSH İvmeölçer Sürücüsü
-SPI1 protokolü üzerinden LIS3DSH ivmeölçer sensörü ile haberleşme. Sensör için bağımsız `lis3dsh.h / lis3dsh.c` sürücü modülü geliştirildi. DRDY kesmesiyle veri hazır sinyali yakalanmakta, kalibrasyon ve alçak geçiren filtre uygulanmaktadır.
-
-**Kullanılan Çevre Birimleri:** SPI1, EXTI, GPIO
-
+## 02 - SPI + LIS3DSH İvmeölçer
+ 
+LIS3DSH ivmeölçer sensörünün SPI protokolü üzerinden okunması. Kimlik doğrulama, ham veri okuma, kalibrasyon ve alçak geçiren filtre uygulaması. DRDY kesmesiyle veri hazır tespiti. Roll ve pitch açısı hesabı.
+ 
+**Kullanılan Çevre Birimleri:** SPI1, EXTI, LIS3DSH sürücüsü
+ 
 ---
-
-### 03 — PWM ve Servo Motor Kontrolü
-TIM4 PWM çıkışıyla SG90 servo motorunun 0–180° arasında konumlandırılması. İvmeölçerden okunan yatış (Roll) ve yunuslama (Pitch) açıları servo konumuna dönüştürülmektedir.
-
-**Kullanılan Çevre Birimleri:** TIM4 (PWM), SPI1, GPIO
-
+ 
+## 03 - PWM + Servo
+ 
+TIM4 ile LED parlaklık kontrolü ve TIM3 ile SG90 servo motor kontrolü. PWM duty cycle ayarı ile 0-180° servo açı kontrolü.
+ 
+**Kullanılan Çevre Birimleri:** TIM3, TIM4, PWM
+ 
 ---
-
-### 04 — İvmeölçer Tabanlı PID Servo Kontrolcüsü
-LIS3DSH ivmeölçerden okunan açı bilgisiyle servo motoru dengede tutan PID kontrolcüsü. Anti-windup mekanizması ve gerçek zaman farkı (dt) hesabı içermektedir. UART üzerinden Python ile gerçek zamanlı grafik görselleştirmesi sağlanmaktadır.
-
-**PID Katsayıları:** Kp=1.7, Ki=0.1, Kd=0.005
-
-**Kullanılan Çevre Birimleri:** SPI1, TIM4 (PWM), USART2, GPIO
-
+ 
+## 04 - MEMS + PID + FreeRTOS + State Machine
+ 
+İvmeölçerden okunan roll açısını PID kontrolcüsü ile dengeleyip servo motoru süren tam sistem. FreeRTOS ile üç görev (sensör okuma, PID hesaplama, UART gönderimi) ve aralarında mesaj kuyruğu. Anti-windup, değişken dt, integral sıfırlama mekanizmaları. Dört durumlu state machine (KALİBRASYON, ÇALIŞIYOR, HATA, DURDURULDU). Python ile gerçek zamanlı grafik görselleştirme.
+ 
+**Kullanılan Çevre Birimleri:** SPI1, TIM3, FreeRTOS, USART2, Queue, State Machine
+ 
 ---
-
-### 05 — FreeRTOS Çoklu Görev Uygulaması
-CMSIS_V2 arayüzü üzerinden FreeRTOS entegrasyonu. `sensorTask`, `pidTask` ve `uartTask` olmak üzere üç bağımsız görev; mesaj kuyrukları (Queue) ve karşılıklı dışlama nesneleri (Mutex) kullanılarak haberleşmektedir. Durum makinesi (State Machine) ile KALIBRASYON, ÇALIŞIYOR ve HATA durumları yönetilmektedir.
-
-**Kullanılan Çevre Birimleri:** SPI1, TIM4 (PWM), USART2, FreeRTOS
-
+ 
+## 05 - FreeRTOS Temel
+ 
+FreeRTOS kavramlarının temel uygulaması. Dört LED görevi ile çoklu görev (multitasking) demosu. Mutex ile paylaşılan sayaca karşılıklı erişim koruması. Mesaj kuyruğu (Queue) ile buton görevi üzerinden LED hız kontrolü.
+ 
+**Kullanılan Çevre Birimleri:** FreeRTOS, Mutex, Queue, GPIO
 ---
 
 ### 06 — DAC/ADC Sinüs Üretimi (Zamanlayıcı Kesmesi)

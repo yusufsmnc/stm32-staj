@@ -52,7 +52,8 @@ TIM4 ile LED parlaklık kontrolü ve TIM3 ile SG90 servo motor kontrolü. PWM du
  
 FreeRTOS kavramlarının temel uygulaması. Dört LED görevi ile çoklu görev (multitasking) demosu. Mutex ile paylaşılan sayaca karşılıklı erişim koruması. Mesaj kuyruğu (Queue) ile buton görevi üzerinden LED hız kontrolü.
  
-**Kullanılan Çevre Birimleri:** FreeRTOS, Mutex, Queue, GPIO
+**Kullanılan Çevre Birimleri:** , Mutex, Queue, GPIO
+
 ---
 
 ### 06 — DAC/ADC Sinüs Üretimi (Zamanlayıcı Kesmesi)
